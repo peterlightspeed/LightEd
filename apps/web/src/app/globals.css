@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts are loaded at runtime so the build does not depend on Google Fonts. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
+:root {
+  --bg: #f4f6fc;
+  --fg: #0f1b33;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Thin, unobtrusive scrollbars for the app shell. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6deee;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .card {
+    @apply rounded-3xl border border-line bg-white shadow-card;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+
+  .input-base {
+    @apply w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition
+      placeholder:text-muted/70 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-brand-600;
+  }
+
+  /* Rendered lesson content (lightweight markdown subset). */
+  .prose-lesson p {
+    @apply mb-4 text-[15px] leading-7 text-slate-700;
+  }
+  .prose-lesson strong {
+    @apply font-semibold text-ink;
+  }
+  .prose-lesson h3 {
+    @apply mb-2 mt-6 font-display text-lg font-bold text-ink;
+  }
+  .prose-lesson pre {
+    @apply mb-4 overflow-x-auto rounded-2xl bg-navy-900 p-4 text-sm text-blue-50;
+  }
+  .prose-lesson code {
+    @apply font-mono text-[13px];
+  }
+  .prose-lesson ul {
+    @apply mb-4 list-disc space-y-1 pl-5 text-[15px] text-slate-700;
+  }
+}
