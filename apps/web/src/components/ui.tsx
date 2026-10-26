@@ -3,6 +3,7 @@
  * Everything visual in the app is composed from these so styling stays
  * consistent with the Figma design (rounded cards, navy text, blue CTAs).
  */
+import Image from "next/image";
 import Link from "next/link";
 import { forwardRef } from "react";
 import { Loader2, Sparkles } from "lucide-react";
@@ -344,23 +345,32 @@ export function PageLoader({ label = "Loading" }: { label?: string }) {
 }
 
 /* -------------------------------------------------------------------- Logo */
+/**
+ * Brand logo: the real LightEd mark (bulb + graduation cap) from /public/logo-mark.png
+ * next to a live-text wordmark. On dark surfaces (`variant="light"`) the mark sits on a
+ * white tile so the navy cap stays readable.
+ */
 export function Logo({
   variant = "dark",
   className,
   showWordmark = true,
+  size = 40,
 }: {
   variant?: "dark" | "light";
   className?: string;
   showWordmark?: boolean;
+  size?: number;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500 text-white shadow-[0_8px_18px_-8px_rgba(47,107,255,0.9)]">
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
-          <path d="M12 3v2M5.6 5.6l1.4 1.4M3 12h2M18.4 5.6L17 7M21 12h-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M9 18h6M10 21h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M12 7a5 5 0 0 0-3 9h6a5 5 0 0 0-3-9Z" fill="currentColor" opacity=".9" />
-        </svg>
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center",
+          variant === "light" && "rounded-xl bg-white p-1 shadow-sm"
+        )}
+        style={{ width: size, height: size }}
+      >
+        <Image src="/logo-mark.png" alt="LightEd logo" width={size} height={size} unoptimized priority className="h-full w-full object-contain" />
       </span>
       {showWordmark && (
         <span
@@ -369,7 +379,7 @@ export function Logo({
             variant === "light" ? "text-white" : "text-navy-700"
           )}
         >
-          Light<span className="text-brand-500">Ed</span>
+          Light<span className={variant === "light" ? "text-brand-300" : "text-brand-500"}>Ed</span>
         </span>
       )}
     </span>

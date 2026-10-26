@@ -1,5 +1,7 @@
 # DEPLOY.md — LightEd to production
 
+> **Getting a CORS error or an empty database after deploying?** Follow **[FIX_BACKEND.md](FIX_BACKEND.md)** — it lists the exact Render env vars (`FRONTEND_URL`, `SEED_ON_START`, `PYTHON_VERSION`) and a curl test.
+
 The stack: **Neon** (Postgres) → **Render** (FastAPI) → **Vercel** (Next.js).
 
 Do the steps **in this order**. Each one depends on the URL from the previous step.

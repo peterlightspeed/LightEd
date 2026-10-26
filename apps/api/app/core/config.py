@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     # ---- CORS --------------------------------------------------------------
     # Comma-separated list. The Next.js dev server is allowed by default.
     backend_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    # Your deployed frontend, e.g. https://light-ed.vercel.app (also allowed by CORS).
+    frontend_url: str | None = None
+    # Safety net: any *.vercel.app origin (production + preview deploys) is allowed
+    # by default so a mistyped BACKEND_CORS_ORIGINS can never lock you out again.
+    # Set to an empty string to disable.
+    cors_origin_regex: str = r"https://.*\.vercel\.app"
+
+    # ---- First-boot seeding ------------------------------------------------
+    # Render's free tier has no shell, so set SEED_ON_START=true once to create the
+    # demo users/courses automatically when the database is empty. Safe to leave on:
+    # it only seeds an EMPTY users table.
+    seed_on_start: bool = False
 
     # ---- Database ----------------------------------------------------------
     # Postgres in production, SQLite for a zero-setup local demo.
@@ -42,7 +54,20 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [o.strip() for o in self.backend_cors_origins.split(",") if o.strip()]
+        """Normalised origin list: trims spaces/quotes and trailing slashes.
+
+        A trailing slash (https://x.vercel.app/) is the #1 cause of CORS failures,
+        because browsers send the Origin header WITHOUT it.
+        """
+        raw = self.backend_cors_origins.split(",")
+        if self.frontend_url:
+            raw.append(self.frontend_url)
+        origins = []
+        for o in raw:
+            o = o.strip().strip("\"'").rstrip("/")
+            if o and o not in origins:
+                origins.append(o)
+        return origins
 
     @property
     def is_sqlite(self) -> bool:

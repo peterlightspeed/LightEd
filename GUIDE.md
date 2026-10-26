@@ -350,79 +350,9 @@ with a reverse proxy (Caddy is the least work). Point `NEXT_PUBLIC_API_URL` at
 
 ## 7. Google Auth integration
 
-The MVP ships with email + password JWT auth. Google login is scaffolded but returns
-`501 Not Implemented` so it never blocks the demo. Here is how to finish it.
-
-### Step 1 — Google Cloud Console
-
-1. <https://console.cloud.google.com> → create a project.
-2. **APIs & Services → OAuth consent screen** → External → fill app name, support email.
-3. **Credentials → Create credentials → OAuth client ID → Web application.**
-4. Authorised JavaScript origins:
-   - `http://localhost:3000`
-   - `https://your-app.vercel.app`
-5. Authorised redirect URIs:
-   - `http://localhost:8000/auth/google/callback`
-   - `https://lighted-api.onrender.com/auth/google/callback`
-6. Copy the **Client ID** and **Client secret**.
-
-### Step 2 — Backend
-
-```bash
-cd apps/api
-pip install authlib httpx
-```
-
-Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the environment.
-
-Replace the placeholder in `app/api/routes/auth.py`:
-
-```python
-@router.post("/google")
-def google_login(payload: GoogleLoginIn, db: Session = Depends(get_db)):
-    # 1. Verify the ID token with Google's public keys
-    #    (google-auth: id_token.verify_oauth2_token)
-    # 2. Extract email + name + picture
-    # 3. Find or create the user (default role: student)
-    # 4. Return the same TokenResponse shape as /auth/login
-    raise HTTPException(501, "Google login not configured")
-```
-
-The cleanest implementation uses `google-auth`:
-
-```python
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-
-info = id_token.verify_oauth2_token(
-    payload.credential,
-    google_requests.Request(),
-    settings.google_client_id,
-)
-email, name = info["email"], info.get("name", info["email"].split("@")[0])
-```
-
-Then reuse the existing `create_access_token` / `create_refresh_token` helpers so the
-frontend needs zero changes — it already stores whatever `/auth/login` returns.
-
-### Step 3 — Frontend
-
-```bash
-cd apps/web
-npm install @react-oauth/google
-```
-
-Wrap the auth layout in `<GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>`,
-drop a `<GoogleLogin onSuccess={...} />` button under the login form, and POST the
-returned `credential` to `/auth/google`. On success call the same `saveSession()` the
-password flow uses.
-
-### Step 4 — Test
-
-Log in with a Google account that is **not** in the seed data — it should create a new
-student and land on `/dashboard`.
-
----
+**Implemented.** Backend `POST /auth/google` verifies the Google ID token and returns the normal
+JWT; the frontend shows the official Google button on Login/Register once a client ID exists.
+Setup (5 minutes) is in **[GOOGLE_AUTH.md](GOOGLE_AUTH.md)**.
 
 ## 8. Wiring the AI tutor (Gemini)
 
@@ -454,6 +384,8 @@ service later without touching the main API.
 ---
 
 ## 9. Troubleshooting
+
+> **CORS error on the deployed site, `externally-managed-environment`, or empty-DB 401s?** See **[FIX_BACKEND.md](FIX_BACKEND.md)**.
 
 ### `ModuleNotFoundError: No module named 'app'`
 

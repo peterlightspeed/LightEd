@@ -11,7 +11,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
+import GoogleButton from "@/components/auth/GoogleButton";
 import { Button, Input } from "@/components/ui";
+import { useSlowHint } from "@/lib/hooks";
 import { useAuth } from "@/lib/auth-context";
 import { homeForRole } from "@/lib/auth";
 
@@ -25,6 +27,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const slow = useSlowHint(loading);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -103,7 +106,14 @@ function LoginForm() {
         <Button type="submit" fullWidth size="lg" loading={loading}>
           Sign in
         </Button>
+        {slow && (
+          <p className="text-center text-xs text-muted">
+            Waking up the server (free hosting) — this can take up to a minute on the first request. Hang tight…
+          </p>
+        )}
       </form>
+
+      <GoogleButton />
 
       {/* Demo credentials — labelled clearly as an MVP convenience. */}
       <div className="mt-6 rounded-2xl border border-dashed border-line bg-mist/60 p-4">

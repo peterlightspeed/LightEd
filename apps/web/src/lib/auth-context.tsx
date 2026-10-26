@@ -9,7 +9,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { api } from "@/lib/api";
+import { API_URL, api } from "@/lib/api";
 import {
   clearSession,
   getStoredUser,
@@ -29,6 +29,8 @@ interface AuthContextValue {
     password: string;
     role: string;
   }) => Promise<User>;
+  /** Sign in / up with a Google ID token (from Google Identity Services). */
+  googleLogin: (credential: string, role?: string) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -39,6 +41,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // Warm-up ping: free hosts (Render) sleep when idle. Waking the API as soon as the
+  // site loads means it is usually ready by the time someone submits a form.
+  useEffect(() => {
+    fetch(`${API_URL}/health`, { cache: "no-store" }).catch(() => undefined);
+  }, []);
 
   // Hydrate from localStorage, then verify the token with /auth/me.
   useEffect(() => {
@@ -63,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await api.post<AuthResponse>("/auth/login", { email, password }, false);
+    const data = await api.post<AuthResponse>("/auth/login", { email, password }, false, true);
     saveSession(data);
     setUser(data.user);
     return data.user;
@@ -79,6 +87,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const googleLogin = useCallback(async (credential: string, role?: string) => {
+    const data = await api.post<AuthResponse>("/auth/google", { credential, role }, false, true);
+    saveSession(data);
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(() => {
     clearSession();
     setUser(null);
@@ -91,8 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refreshUser }),
-    [user, loading, login, register, logout, refreshUser]
+    () => ({ user, loading, login, register, googleLogin, logout, refreshUser }),
+    [user, loading, login, register, googleLogin, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

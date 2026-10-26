@@ -13,17 +13,21 @@ import {
   BookOpen,
   ChevronDown,
   GraduationCap,
+  HelpCircle,
+  LifeBuoy,
   LayoutDashboard,
   LogOut,
   Menu,
   Search,
-  Settings,
   ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
 
+import ProductTour from "@/components/tour/ProductTour";
+import { getTourSteps } from "@/components/tour/tourSteps";
 import { Avatar, Badge, Logo, PageLoader } from "@/components/ui";
+import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from "@/lib/site";
 import { useAuth } from "@/lib/auth-context";
 import { homeForRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -50,10 +54,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
+
+  // First visit: auto-start the tour once per user (remembered in localStorage).
+  const tourKey = user ? `lighted_tour_v1_${user.id}` : null;
+  useEffect(() => {
+    if (!tourKey) return;
+    try {
+      if (!localStorage.getItem(tourKey)) {
+        const t = setTimeout(() => setTourOpen(true), 900);
+        return () => clearTimeout(t);
+      }
+    } catch {
+      /* storage blocked: skip the auto tour */
+    }
+  }, [tourKey]);
+
+  function closeTour() {
+    setTourOpen(false);
+    try {
+      if (tourKey) localStorage.setItem(tourKey, "done");
+    } catch {
+      /* ignore */
+    }
+  }
 
   // Close overlays whenever the route changes.
   useEffect(() => {
@@ -87,7 +115,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <nav className="mt-6 flex-1 space-y-1">
+      <nav className="mt-6 flex-1 space-y-1" data-tour="nav">
         <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Menu</p>
         {items.map((item) => {
           const active = pathname === item.href;
@@ -96,6 +124,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={`${item.href}-${item.label}`}
               href={item.href}
+              data-tour={item.label === "Overview" ? "nav-overview" : `nav-${item.label.toLowerCase()}`}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
                 active ? "bg-white text-navy-700 shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
@@ -108,7 +137,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      <div className="mt-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4">
+      <div className="mt-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-4" data-tour="ai-tutor">
         <div className="flex items-center gap-2 text-gold-300">
           <Sparkles className="h-4 w-4" />
           <span className="text-xs font-bold uppercase tracking-wide">AI Tutor</span>
@@ -151,11 +180,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Top bar */}
         <header className="sticky top-0 z-20 border-b border-line bg-white/85 backdrop-blur-xl">
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
-            <button className="rounded-xl p-2 text-ink hover:bg-mist lg:hidden" onClick={() => setMobileOpen(true)}>
+            <button className="rounded-xl p-2 text-ink hover:bg-mist lg:hidden" onClick={() => setMobileOpen(true)} data-tour="menu-btn" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </button>
 
-            <div className="hidden flex-1 items-center gap-2 rounded-xl border border-line bg-mist/60 px-3 py-2 text-sm text-muted sm:flex sm:max-w-sm">
+            <div data-tour="search" className="hidden flex-1 items-center gap-2 rounded-xl border border-line bg-mist/60 px-3 py-2 text-sm text-muted sm:flex sm:max-w-sm">
               <Search className="h-4 w-4" />
               <input
                 placeholder="Search courses, lessons…"
@@ -170,10 +199,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Badge tone="blue" className="hidden sm:inline-flex">
                 <GraduationCap className="h-3.5 w-3.5" /> {roleLabel}
               </Badge>
-              <Link href="/progress" className="rounded-xl p-2 text-muted hover:bg-mist hover:text-ink" aria-label="Settings">
-                <Settings className="h-[18px] w-[18px]" />
-              </Link>
-              <div className="relative">
+              <button
+                onClick={() => setTourOpen(true)}
+                className="rounded-xl p-2 text-muted hover:bg-mist hover:text-ink"
+                aria-label="Take a tour"
+                title="Take a tour"
+              >
+                <HelpCircle className="h-[18px] w-[18px]" />
+              </button>
+              <div className="relative" data-tour="user-menu">
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
                   className="flex items-center gap-2 rounded-xl p-1 pr-2 hover:bg-mist"
@@ -195,6 +229,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       <LayoutDashboard className="h-4 w-4" /> Dashboard
                     </Link>
                     <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setTourOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted hover:bg-mist hover:text-ink"
+                    >
+                      <HelpCircle className="h-4 w-4" /> Take the tour
+                    </button>
+                    <div className="my-1 border-t border-line px-3 pb-1 pt-2">
+                      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted">
+                        <LifeBuoy className="h-3 w-3" /> Support
+                      </p>
+                      <a href={`mailto:${SUPPORT_EMAIL}`} className="mt-1 block truncate text-xs text-brand-600 hover:underline">
+                        {SUPPORT_EMAIL}
+                      </a>
+                      <a href={`tel:${SUPPORT_PHONE_TEL}`} className="block text-xs text-brand-600 hover:underline">
+                        {SUPPORT_PHONE_DISPLAY}
+                      </a>
+                    </div>
+                    <button
                       onClick={logout}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
                     >
@@ -209,6 +263,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
       </div>
+
+      <ProductTour open={tourOpen} onClose={closeTour} steps={getTourSteps(user.role, user.full_name.split(" ")[0])} />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 
+import ContactSection from "@/components/marketing/ContactSection";
 import Footer from "@/components/marketing/Footer";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import { Badge, ButtonLink, Card, ProgressBar } from "@/components/ui";
@@ -386,6 +387,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <ContactSection />
       <Footer />
     </div>
   );

@@ -193,3 +193,12 @@ Web → <http://localhost:3000>, API → <http://localhost:8000>, Postgres → `
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+---
+
+## Support
+
+Email **lightedsupport@gmail.com** · Phone **0810 882 1809**
+
+Deploy/CORS problems: [FIX_BACKEND.md](FIX_BACKEND.md) · Google sign-in: [GOOGLE_AUTH.md](GOOGLE_AUTH.md)

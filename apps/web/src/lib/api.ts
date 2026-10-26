@@ -18,13 +18,37 @@ export class ApiError extends Error {
   }
 }
 
-type Options = Omit<RequestInit, "body"> & { body?: unknown; auth?: boolean };
+type Options = Omit<RequestInit, "body"> & { body?: unknown; auth?: boolean; retry?: boolean };
+
+export const NETWORK_MESSAGE =
+  "Can't reach the server right now. It may be waking up (free hosting can take up to a minute) — please try again shortly.";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * fetch() that survives a cold-starting backend: on a network-level failure
+ * (TypeError — no response at all) we retry a couple of times before giving up.
+ * Only used for idempotent calls (GETs, login, google) — never for register.
+ */
+async function fetchWithRetry(url: string, init: RequestInit, retry: boolean): Promise<Response> {
+  const attempts = retry ? 3 : 1;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fetch(url, init);
+    } catch {
+      if (i === attempts - 1) throw new ApiError(NETWORK_MESSAGE, 0);
+      await sleep(3000);
+    }
+  }
+  throw new ApiError(NETWORK_MESSAGE, 0); // unreachable, keeps TS happy
+}
 
 export async function apiFetch<T>(path: string, options: Options = {}): Promise<T> {
-  const { body, auth = true, headers, ...rest } = options;
+  const { body, auth = true, headers, retry, ...rest } = options;
+  const isGet = !rest.method || rest.method === "GET";
   const token = auth ? getToken() : null;
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchWithRetry(`${API_URL}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",
@@ -33,7 +57,7 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
     },
     body: body === undefined ? undefined : JSON.stringify(body),
     cache: "no-store",
-  });
+  }, retry ?? isGet);
 
   if (res.status === 401 && auth) {
     // Expired/invalid token: drop it so the app shell can redirect to login.
@@ -59,8 +83,8 @@ export async function apiFetch<T>(path: string, options: Options = {}): Promise<
 /** Convenience helpers used across pages. */
 export const api = {
   get: <T>(path: string, auth = true) => apiFetch<T>(path, { auth }),
-  post: <T>(path: string, body?: unknown, auth = true) =>
-    apiFetch<T>(path, { method: "POST", body, auth }),
+  post: <T>(path: string, body?: unknown, auth = true, retry = false) =>
+    apiFetch<T>(path, { method: "POST", body, auth, retry }),
   patch: <T>(path: string, body?: unknown) =>
     apiFetch<T>(path, { method: "PATCH", body }),
 };

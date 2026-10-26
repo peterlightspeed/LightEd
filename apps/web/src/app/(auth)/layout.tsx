@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Sparkles } from "lucide-react";
 
 import { Logo } from "@/components/ui";
+import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY } from "@/lib/site";
 
 /**
  * Split-screen auth layout inspired by the Figma auth flow:
@@ -65,6 +66,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="flex flex-1 items-center justify-center px-6 pb-12 lg:px-12">
           <div className="w-full max-w-md">{children}</div>
         </div>
+        <p className="px-6 pb-6 text-center text-xs text-muted">
+          Need help? {SUPPORT_EMAIL} · {SUPPORT_PHONE_DISPLAY}
+        </p>
       </main>
     </div>
   );

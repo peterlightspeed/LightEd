@@ -6,8 +6,9 @@ immediately usable. In production, run Alembic migrations and seed explicitly.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
 from app.api.routes import admin, ai, auth, courses, dashboard, lessons, progress, quizzes
@@ -24,7 +25,8 @@ async def lifespan(app: FastAPI):
 
     Base.metadata.create_all(bind=engine)
 
-    if settings.app_env == "development":
+    # Seed demo data in development, or in any env when SEED_ON_START=true.
+    if settings.app_env == "development" or settings.seed_on_start:
         db = SessionLocal()
         try:
             if db.scalar(select(User).limit(1)) is None:
@@ -44,13 +46,33 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.middleware("http")
+async def catch_unhandled_errors(request: Request, call_next):
+    """Turn crashes into JSON 500s *inside* the CORS layer.
+
+    Without this, an unhandled exception is answered by Starlette's outermost error
+    handler, which has no CORS headers — the browser then reports a misleading
+    "blocked by CORS policy" error instead of the real server error.
+    This middleware is registered BEFORE CORSMiddleware so CORS wraps it.
+    """
+    try:
+        return await call_next(request)
+    except Exception:  # noqa: BLE001
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        return JSONResponse({"detail": "Internal server error"}, status_code=500)
+
+
+# Added last => outermost => every response (incl. errors + preflight) gets CORS headers.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logger.info("CORS allowed origins: %s (+ regex %s)", settings.cors_origins, settings.cors_origin_regex)
 
 # Routers
 app.include_router(auth.router)
@@ -65,7 +87,14 @@ app.include_router(ai.router)
 
 @app.get("/health", tags=["meta"])
 def health():
-    return {"status": "ok", "app": settings.app_name, "env": settings.app_env}
+    # cors_origins is shown on purpose: it makes CORS misconfiguration obvious at a glance.
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "env": settings.app_env,
+        "cors_origins": settings.cors_origins,
+        "google_enabled": bool(settings.google_client_id),
+    }
 
 
 @app.get("/", tags=["meta"])

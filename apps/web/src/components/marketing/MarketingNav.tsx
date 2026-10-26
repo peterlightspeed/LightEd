@@ -12,6 +12,7 @@ const links = [
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
   { href: "#for-teachers", label: "For teachers" },
+  { href: "#contact", label: "Contact" },
 ];
 
 export default function MarketingNav() {

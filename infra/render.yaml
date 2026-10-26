@@ -1,23 +1,33 @@
-# Render blueprint — deploys the FastAPI backend + managed Postgres.
+# Render blueprint — FastAPI backend + managed Postgres.
 # Docs: https://render.com/docs/blueprint-spec
 services:
   - type: web
     name: lighted-api
     runtime: python
     rootDir: apps/api
-    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION        # pin: avoids source builds on brand-new Python releases
+        value: 3.11.9
+      - key: APP_ENV
+        value: production
+      - key: SEED_ON_START         # seeds demo users/courses ONLY if the DB is empty
+        value: "true"
       - key: DATABASE_URL
         fromDatabase:
           name: lighted-db
           property: connectionString
       - key: JWT_SECRET_KEY
         generateValue: true
-      - key: GEMINI_API_KEY
+      - key: FRONTEND_URL          # e.g. https://light-ed.vercel.app (no trailing slash)
         sync: false
-      - key: BACKEND_CORS_ORIGINS
+      - key: BACKEND_CORS_ORIGINS  # optional extra origins, comma separated
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GEMINI_API_KEY
         sync: false
 
 databases:

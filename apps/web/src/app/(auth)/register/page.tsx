@@ -12,7 +12,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, GraduationCap, Lock, Mail, User, Users } from "lucide-react";
 
+import GoogleButton from "@/components/auth/GoogleButton";
 import { Button, Input } from "@/components/ui";
+import { useSlowHint } from "@/lib/hooks";
 import { useAuth } from "@/lib/auth-context";
 import { homeForRole } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const slow = useSlowHint(loading);
 
   /** Validate the first step locally before advancing. */
   function goToRole(event: React.FormEvent) {
@@ -234,6 +237,12 @@ export default function RegisterPage() {
               Create {role} account
             </Button>
           </div>
+          {slow && (
+            <p className="mt-3 text-center text-xs text-muted">
+              Waking up the server (free hosting) — this can take up to a minute. Hang tight…
+            </p>
+          )}
+          <GoogleButton role={role} label={`or sign up with Google as a ${role}`} />
         </>
       )}
 

@@ -30,3 +30,8 @@ class ForgotPasswordRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str  # the Google ID token (JWT) from Google Identity Services
+    role: str | None = None  # only used when this creates a NEW account
