@@ -128,16 +128,16 @@ Adds `topics`, each containing `lessons`:
     {
       "id": 1,
       "title": "Variables & Expressions",
-      "position": 1,
+      "order_index": 1,
       "lessons": [
         {
           "id": 1,
           "title": "What is a variable?",
           "summary": "Letters that stand in for numbers.",
           "duration_minutes": 12,
-          "position": 1,
+          "order_index": 1,
           "completed": true,
-          "has_quiz": true
+          "quiz_id": 1
         }
       ]
     }
@@ -147,8 +147,9 @@ Adds `topics`, each containing `lessons`:
 
 ### `POST /courses/{id}/enroll`
 
-No body. Returns `EnrollmentOut`. Calling it twice is safe — the unique constraint on
-`(user_id, course_id)` means the second call is a no-op, not an error.
+No body. Returns **201** with `EnrollmentOut`. Calling it twice is safe — the unique
+constraint on `(user_id, course_id)` means the second call is a no-op that still
+returns 201, not an error.
 
 ---
 
@@ -168,7 +169,7 @@ No body. Returns `EnrollmentOut`. Calling it twice is safe — the unique constr
   "summary": "Letters that stand in for numbers.",
   "content": "A variable is a letter...\n\n**Key idea**\n\nIt stands for an unknown.",
   "duration_minutes": 12,
-  "position": 1,
+  "order_index": 1,
   "course_id": 1,
   "course_title": "Algebra Foundations",
   "topic_id": 1,
@@ -189,10 +190,11 @@ headings and emphasis. The frontend renders this without a markdown library.
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/quizzes/lesson/{lesson_id}` | user | Quiz for a lesson (404 if none) |
+| GET | `/lessons/{lesson_id}/quiz` | user | Quiz for a lesson (404 if none) |
 | GET | `/quizzes/{id}` | user | Quiz **without** answer keys |
-| POST | `/quizzes/{id}/attempts` | user | Submit answers, receive graded result |
-| GET | `/quizzes/attempts/me` | user | The caller's attempt history |
+| POST | `/quizzes/{id}/attempts` | user | Submit answers, receive graded result (**201**) |
+| GET | `/attempts/me` | user | The caller's attempt history |
+| POST | `/quizzes` | teacher/admin | Create a quiz for a lesson (**201**) |
 
 ### `GET /quizzes/{id}` → `Quiz`
 
@@ -200,11 +202,9 @@ headings and emphasis. The frontend renders this without a markdown library.
 {
   "id": 1,
   "lesson_id": 1,
-  "lesson_title": "What is a variable?",
-  "pass_mark": 70,
+  "title": "Variables check",
   "questions": [
     {
-      "id": 1,
       "prompt": "Which of these is a variable?",
       "options": ["3", "x", "7 + 2", "="]
     }
@@ -223,27 +223,25 @@ headings and emphasis. The frontend renders this without a markdown library.
 
 One entry per question, in order. Use `-1` for unanswered.
 
-**200** → `AttemptResult`
+**201** → `AttemptResult`
 
 ```json
 {
-  "attempt_id": 14,
+  "id": 14,
   "quiz_id": 1,
-  "score": 75,
-  "correct": 3,
+  "score": 75.0,
+  "correct_count": 3,
   "total": 4,
-  "passed": true,
   "results": [
     {
-      "question_id": 1,
       "prompt": "Which of these is a variable?",
-      "options": ["3", "x", "7 + 2", "="],
-      "selected_index": 1,
-      "answer_index": 1,
-      "correct": true,
+      "selected": 1,
+      "correct_index": 1,
+      "is_correct": true,
       "explanation": "x is a letter standing in for an unknown value."
     }
-  ]
+  ],
+  "created_at": "2026-10-26T13:55:34Z"
 }
 ```
 
@@ -269,11 +267,9 @@ in `/progress/me` and the dashboards.
     {
       "course_id": 1,
       "title": "Algebra Foundations",
-      "accent": "blue",
-      "lessons_completed": 3,
-      "lesson_count": 4,
       "progress": 75,
-      "avg_score": 88
+      "lessons_completed": 3,
+      "lessons_total": 4
     }
   ],
   "recent_lessons": [
@@ -281,6 +277,7 @@ in `/progress/me` and the dashboards.
       "lesson_id": 5,
       "title": "Cell structures",
       "course_title": "Biology: Cells to Systems",
+      "completed": true,
       "completed_at": "2026-10-25T09:14:00Z"
     }
   ]
@@ -301,11 +298,12 @@ in `/progress/me` and the dashboards.
 
 ```json
 {
+  "user": { "id": 3, "full_name": "Sam Rivera", "email": "student@lighted.dev", "role": "student" },
   "stats": {
-    "courses_enrolled": 3,
+    "enrolled_courses": 3,
     "lessons_completed": 7,
     "lessons_total": 9,
-    "avg_score": 82,
+    "avg_score": 82.0,
     "streak_days": 4
   },
   "continue_learning": {
@@ -313,17 +311,26 @@ in `/progress/me` and the dashboards.
     "course_title": "Biology: Cells to Systems",
     "lesson_id": 5,
     "lesson_title": "Cell structures",
+    "topic_title": "The cell",
     "progress": 67
   },
+  "courses": [
+    { "id": 1, "title": "Algebra Foundations", "subject": "Mathematics", "level": "Beginner",
+      "accent": "blue", "lesson_count": 4, "lessons_completed": 3, "progress": 75 }
+  ],
   "focus_areas": [
-    { "course_id": 3, "title": "World History: Modern Era", "mastery": 61, "status": "developing" }
+    { "course_id": 3, "label": "History", "mastery": 61 }
   ],
   "recommendations": [
-    { "course_id": 4, "title": "Intro to Programming", "reason": "Not started yet", "accent": "violet" }
+    { "course_id": 4, "title": "Intro to Programming", "subject": "Computer Science",
+      "level": "Beginner", "accent": "violet", "reason": "Popular with students in your year" }
   ],
-  "weekly_activity": [1, 0, 2, 1, 3, 0, 1],
-  "recent_quizzes": [
-    { "quiz_id": 2, "lesson_title": "Cell structures", "score": 75, "taken_at": "2026-10-25T09:20:00Z" }
+  "recent_attempts": [
+    { "id": 9, "quiz_id": 2, "quiz_title": "Cells check", "lesson_title": "Cell structures",
+      "score": 75.0, "created_at": "2026-10-25T09:20:00Z" }
+  ],
+  "weekly_activity": [
+    { "day": "Mon", "lessons": 1 }, { "day": "Tue", "lessons": 0 }
   ]
 }
 ```
@@ -332,24 +339,22 @@ in `/progress/me` and the dashboards.
 
 ```json
 {
+  "user": { "id": 2, "full_name": "Maya Chen", "email": "teacher@lighted.dev", "role": "teacher" },
   "stats": {
     "total_students": 5,
     "active_courses": 4,
-    "class_average": 69,
+    "avg_score": 69.4,
     "at_risk": 2
   },
   "courses": [
-    { "course_id": 1, "title": "Algebra Foundations", "students": 4, "avg_progress": 72, "avg_score": 78 }
-  ],
-  "at_risk_students": [
-    { "user_id": 5, "full_name": "Amina Yusuf", "email": "amina@lighted.dev", "avg_score": 48, "lessons_completed": 3 }
+    { "id": 1, "title": "Algebra Foundations", "subject": "Mathematics", "accent": "blue", "students": 4, "lessons": 4, "avg_progress": 72 }
   ],
   "students": [
     {
-      "user_id": 3,
-      "full_name": "Sam Rivera",
+      "id": 3,
+      "name": "Sam Rivera",
       "email": "student@lighted.dev",
-      "avg_score": 82,
+      "avg_score": 82.0,
       "lessons_completed": 7,
       "status": "on_track"
     }
@@ -357,7 +362,9 @@ in `/progress/me` and the dashboards.
 }
 ```
 
-`status` is `on_track` (≥70), `developing` (50–69) or `at_risk` (<50).
+`students[].status` is `at_risk` when the student's average quiz score is below 60,
+otherwise `on_track`. `stats.at_risk` is the count of those students. The roster is
+sorted by `avg_score` ascending and capped at 8 rows.
 
 ### `GET /dashboard/admin`
 
@@ -368,7 +375,7 @@ in `/progress/me` and the dashboards.
     { "id": 3, "full_name": "Sam Rivera", "email": "student@lighted.dev", "role": "student", "created_at": "..." }
   ],
   "courses": [
-    { "id": 1, "title": "Algebra Foundations", "published": true, "lesson_count": 4, "students": 4 }
+    { "id": 1, "title": "Algebra Foundations", "subject": "Mathematics", "published": true }
   ]
 }
 ```
@@ -399,15 +406,23 @@ Both return the updated object.
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/ai/tutor` | user | **Stub** — returns a canned reply |
+| POST | `/ai/tutor` | user | **Stub** — returns a canned answer |
 
 ```json
 POST /ai/tutor
-{ "message": "Explain variables", "lesson_id": 1 }
+{ "question": "Explain variables", "lesson_id": 1, "course_id": 1 }
 
 → 200
-{ "reply": "I'm a placeholder tutor...", "stub": true }
+{
+  "answer": "I'm a placeholder tutor. Wire a real model in app/api/routes/ai.py.",
+  "sources": [],
+  "provider": "stub"
+}
 ```
+
+`question` is required (2–1000 chars); `lesson_id` and `course_id` are optional context
+hints. When a real model is wired in, `provider` changes from `"stub"` and `sources`
+carries citations.
 
 See `GUIDE.md § 8` for wiring Gemini.
 
