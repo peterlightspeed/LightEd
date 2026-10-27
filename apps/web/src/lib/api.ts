@@ -87,4 +87,6 @@ export const api = {
     apiFetch<T>(path, { method: "POST", body, auth, retry }),
   patch: <T>(path: string, body?: unknown) =>
     apiFetch<T>(path, { method: "PATCH", body }),
+  put: <T>(path: string, body?: unknown) =>
+    apiFetch<T>(path, { method: "PUT", body }),
 };

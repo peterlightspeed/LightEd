@@ -67,3 +67,13 @@
 - [ ] YOU: set Render env vars + redeploy (FIX_BACKEND.md), create Google client ID (GOOGLE_AUTH.md)
 - [ ] Real password-reset emails (`/auth/forgot-password` is still a stub)
 - [ ] Alembic migrations before real users (tables are created with `create_all` today)
+
+## 7. v3 status
+- [x] Courses auto-seed + in-app course/lesson/quiz authoring
+- [x] Teacher Students tab + student detail + rule-based risk
+- [x] PWA install alert, offline page, icons
+- [x] Mobile bottom nav + layout fixes
+- [x] AI tutor page (grounded + sources), revision planner, audit log
+- [ ] Dark mode (FR-25) · notifications (FR-22) · PDF/material upload (FR-05) · class join codes (FR-06)
+- [ ] Rate limiting on login/AI endpoints · Alembic migrations before real users
+- [ ] ML risk model (Random Forest) once real data exists (rule-based today)

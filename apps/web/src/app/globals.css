@@ -81,3 +81,55 @@ a {
     @apply mb-4 list-disc space-y-1 pl-5 text-[15px] text-slate-700;
   }
 }
+
+/* ------------------------------------------------------------------ mobile hardening (v3) */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip; /* never allow sideways scrolling from an overflowing child */
+  -webkit-text-size-adjust: 100%;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+[role="button"],
+summary {
+  touch-action: manipulation; /* removes the 300ms tap delay + double-tap zoom */
+}
+/* iOS zooms the page when a focused input is under 16px. Keep inputs at 16px on phones. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea,
+  .input-base {
+    font-size: 16px !important;
+  }
+}
+/* Long words / emails / URLs must wrap instead of widening the page. */
+h1,
+h2,
+h3,
+p,
+td,
+li {
+  overflow-wrap: anywhere;
+}
+img,
+svg,
+video {
+  max-width: 100%;
+}
+/* Installed PWA (standalone): respect notches. */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Grid/flex children can't shrink below their content by default -> sideways overflow on phones. */
+.grid > *,
+.flex > * {
+  min-width: 0;
+}

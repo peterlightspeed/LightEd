@@ -46,6 +46,7 @@ class Settings(BaseSettings):
 
     # ---- AI (optional, kept separate from the core app) --------------------
     gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
     ai_service_url: str | None = None
 
     # ---- Auth providers (placeholders for later integration) ---------------

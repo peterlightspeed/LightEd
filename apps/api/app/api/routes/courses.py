@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_optional_user, require_roles
+from app.api.permissions import course_for_edit
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.enrollment import Enrollment
@@ -146,8 +147,7 @@ def create_topic(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("teacher", "admin")),
 ):
-    if not db.get(Course, course_id):
-        raise HTTPException(404, "Course not found")
+    course_for_edit(db, course_id, user)  # teachers: own courses only
     topic = Topic(course_id=course_id, title=payload.title, order_index=payload.order_index)
     db.add(topic)
     db.commit()
@@ -161,8 +161,10 @@ def create_lesson(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("teacher", "admin")),
 ):
-    if not db.get(Topic, payload.topic_id):
+    topic = db.get(Topic, payload.topic_id)
+    if not topic:
         raise HTTPException(404, "Topic not found")
+    course_for_edit(db, topic.course_id, user)  # teachers: own courses only
     lesson = Lesson(**payload.model_dump())
     db.add(lesson)
     db.commit()

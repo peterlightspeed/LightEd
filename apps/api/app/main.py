@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
-from app.api.routes import admin, ai, auth, courses, dashboard, lessons, progress, quizzes
+from app.api.routes import admin, ai, auth, courses, dashboard, lessons, planner, progress, quizzes, teacher
 from app.core.config import settings
 
 logger = logging.getLogger("lighted")
@@ -29,11 +29,15 @@ async def lifespan(app: FastAPI):
     if settings.app_env == "development" or settings.seed_on_start:
         db = SessionLocal()
         try:
-            if db.scalar(select(User).limit(1)) is None:
+            # Seed when there are NO COURSES (not "no users"): an early sign-up must never
+            # leave the catalogue empty. seed() is idempotent and get-or-creates demo users.
+            from app.models.course import Course
+
+            if db.scalar(select(Course).limit(1)) is None:
                 from app.db.seed import seed
 
                 seed()
-                logger.info("Seeded demo data")
+                logger.info("Seeded demo data (catalogue was empty)")
         finally:
             db.close()
     yield
@@ -83,6 +87,8 @@ app.include_router(progress.router)
 app.include_router(dashboard.router)
 app.include_router(admin.router)
 app.include_router(ai.router)
+app.include_router(teacher.router)
+app.include_router(planner.router)
 
 
 @app.get("/health", tags=["meta"])

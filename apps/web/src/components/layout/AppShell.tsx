@@ -10,6 +10,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  CalendarDays,
+  Users,
   BookOpen,
   ChevronDown,
   GraduationCap,
@@ -45,6 +47,9 @@ const NAV: NavItem[] = [
   { href: "/dashboard/teacher", label: "Overview", icon: LayoutDashboard, roles: ["teacher"] },
   { href: "/dashboard/admin", label: "Overview", icon: ShieldCheck, roles: ["admin"] },
   { href: "/courses", label: "Courses", icon: BookOpen, roles: ["student", "teacher", "admin"] },
+  { href: "/students", label: "Students", icon: Users, roles: ["teacher", "admin"] },
+  { href: "/tutor", label: "AI Tutor", icon: Sparkles, roles: ["student", "teacher"] },
+  { href: "/planner", label: "Planner", icon: CalendarDays, roles: ["student"] },
   { href: "/progress", label: "Progress", icon: BarChart3, roles: ["student"] },
 ];
 
@@ -146,8 +151,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           Stuck on a topic? Ask the tutor for a step-by-step explanation.
         </p>
         <Link
-          href="/courses"
-          className="mt-3 inline-flex rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/25"
+          href="/tutor"
+          className="mt-3 inline-flex min-h-[40px] items-center rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/25"
         >
           Ask a question
         </Link>
@@ -180,7 +185,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* Top bar */}
         <header className="sticky top-0 z-20 border-b border-line bg-white/85 backdrop-blur-xl">
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
-            <button className="rounded-xl p-2 text-ink hover:bg-mist lg:hidden" onClick={() => setMobileOpen(true)} data-tour="menu-btn" aria-label="Open menu">
+            <button className="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-mist lg:hidden" onClick={() => setMobileOpen(true)} data-tour="menu-btn" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </button>
 
@@ -201,7 +206,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </Badge>
               <button
                 onClick={() => setTourOpen(true)}
-                className="rounded-xl p-2 text-muted hover:bg-mist hover:text-ink"
+                className="flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-mist hover:text-ink"
                 aria-label="Take a tour"
                 title="Take a tour"
               >
@@ -261,8 +266,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">{children}</main>
       </div>
+
+      {/* Mobile bottom tab bar: thumb-friendly primary navigation (hidden on desktop). */}
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <ul className="mx-auto flex max-w-xl">
+          {items.slice(0, 5).map((item) => {
+            const active = pathname === item.href || (item.href !== "/dashboard" && !item.href.startsWith("/dashboard") && pathname.startsWith(item.href));
+            const Icon = item.icon;
+            return (
+              <li key={`${item.href}-b`} className="flex-1">
+                <Link
+                  href={item.href}
+                  data-tour={item.label === "Overview" ? "nav-overview" : `nav-${item.label.toLowerCase()}`}
+                  className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${active ? "text-brand-600" : "text-muted"}`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label === "Overview" ? "Home" : item.label === "AI Tutor" ? "Tutor" : item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
 
       <ProductTour open={tourOpen} onClose={closeTour} steps={getTourSteps(user.role, user.full_name.split(" ")[0])} />
     </div>

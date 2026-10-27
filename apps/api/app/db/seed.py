@@ -68,10 +68,17 @@ def _course(db, owner, *, title, description, subject, level, accent, curriculum
 
 
 def seed() -> None:
+    # Make sure tables exist first, so `python -m app.db.seed` works on a brand-new DB
+    # (previously only the running API created them -> "no such table: users").
+    import app.models  # noqa: F401  (registers every model on Base.metadata)
+    from app.db.session import Base, engine
+
+    Base.metadata.create_all(bind=engine)
+
     db = SessionLocal()
     try:
-        if db.scalar(select(User).where(User.email == "teacher@lighted.dev")):
-            print("Seed data already present. Skipping.")
+        if db.scalar(select(Course).limit(1)):
+            print("Courses already present. Skipping.")
             return
 
         teacher = User(
@@ -102,8 +109,16 @@ def seed() -> None:
             User(full_name="Leo Okafor", email="leo@lighted.dev",
                  hashed_password=hash_password(DEMO_PASSWORD), role="student"),
         ]
-        db.add_all([teacher, admin, student, *classmates])
-        db.flush()
+        # get-or-create: real sign-ups may already exist (even the same email).
+        def _goc(u: User) -> User:
+            existing = db.scalar(select(User).where(User.email == u.email))
+            if existing:
+                return existing
+            db.add(u)
+            db.flush()
+            return u
+
+        teacher, admin, student, *classmates = [_goc(u) for u in (teacher, admin, student, *classmates)]
 
         algebra, algebra_lessons = _course(
             db, teacher,

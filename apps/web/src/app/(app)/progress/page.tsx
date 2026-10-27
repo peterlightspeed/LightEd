@@ -52,7 +52,7 @@ export default function ProgressPage() {
         <Skeleton className="h-24 w-full" />
         <div className="grid gap-6 lg:grid-cols-3">
           <Skeleton className="h-64" />
-          <Skeleton className="h-64 lg:col-span-2" />
+          <Skeleton className="h-64 lg:col-span-2 min-w-0" />
         </div>
       </div>
     );
@@ -81,7 +81,7 @@ export default function ProgressPage() {
           </p>
         </Card>
 
-        <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3 lg:col-span-2 min-w-0 lg:grid-cols-3">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (

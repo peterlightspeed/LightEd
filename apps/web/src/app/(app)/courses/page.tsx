@@ -8,10 +8,12 @@
  * and this avoids extra round-trips.
  */
 import Link from "next/link";
+import NewCourseForm from "@/components/teacher/NewCourseForm";
+import { useAuth } from "@/lib/auth-context";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpen, Filter, Search, Sparkles } from "lucide-react";
 
-import { Badge, ButtonLink, Card, EmptyState, Input, ProgressBar, Select, Skeleton } from "@/components/ui";
+import { Badge, Button, ButtonLink, Card, EmptyState, Input, ProgressBar, Select, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
 import { accent } from "@/lib/utils";
 import type { Course } from "@/types";
@@ -51,8 +53,13 @@ export default function CoursesPage() {
     });
   }, [courses, query, subject, level]);
 
+  const { user } = useAuth();
+  const [creating, setCreating] = useState(false);
+  const canCreate = user?.role === "teacher" || user?.role === "admin";
+
   return (
     <div className="space-y-7">
+      {creating && <NewCourseForm onCancel={() => setCreating(false)} />}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-semibold text-brand-600">Catalogue</p>
@@ -61,10 +68,14 @@ export default function CoursesPage() {
             Structured paths in maths, science, history, and programming.
           </p>
         </div>
+        {canCreate ? (
+          <Button onClick={() => setCreating((v) => !v)}>{creating ? "Close" : "+ New course"}</Button>
+        ) : (
         <ButtonLink href="/progress" variant="secondary">
           <Sparkles className="h-4 w-4" />
           My progress
         </ButtonLink>
+        )}
       </div>
 
       {/* Filters */}

@@ -12,7 +12,7 @@ import { BookOpen, GraduationCap, ShieldCheck, Users, UserCog } from "lucide-rea
 
 import { Avatar, Badge, Card, CardHeader, EmptyState, Select, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { AdminDashboard, Role } from "@/types";
+import type { AdminDashboard, AuditEntry, Role } from "@/types";
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<AdminDashboard | null>(null);
@@ -66,7 +66,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-24 w-full" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
         <p className="mt-1 text-sm text-muted">Manage accounts, roles, and course visibility.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -180,6 +180,35 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       </Card>
+      <AuditCard />
     </div>
+  );
+}
+
+
+/** Recent security/admin events (PDF FR-24): logins, failed logins, role changes, quiz publishing. */
+function AuditCard() {
+  const [rows, setRows] = useState<AuditEntry[] | null>(null);
+  useEffect(() => {
+    api.get<AuditEntry[]>("/admin/audit?limit=30").then(setRows).catch(() => setRows([]));
+  }, []);
+  return (
+    <Card className="p-5 sm:p-6">
+      <h2 className="font-display text-lg font-bold text-ink">Audit log</h2>
+      <p className="text-sm text-muted">Latest security and admin activity.</p>
+      <div className="mt-3 divide-y divide-line/70">
+        {rows === null && <p className="py-3 text-sm text-muted">Loading…</p>}
+        {rows?.length === 0 && <p className="py-3 text-sm text-muted">No events yet.</p>}
+        {rows?.map((r) => (
+          <div key={r.id} className="py-2.5 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-x-3">
+              <span className={`font-semibold ${r.action.includes("failed") ? "text-rose-600" : "text-ink"}`}>{r.action}</span>
+              <span className="text-xs text-muted">{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</span>
+            </div>
+            <p className="truncate text-xs text-muted">{r.actor || "anonymous"} {r.detail && `· ${r.detail}`} {r.ip && `· ${r.ip}`}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

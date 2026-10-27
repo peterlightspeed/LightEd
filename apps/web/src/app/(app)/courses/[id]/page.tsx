@@ -7,6 +7,8 @@
  * Lesson rows link straight into the lesson viewer.
  */
 import Link from "next/link";
+import CourseManager from "@/components/teacher/CourseManager";
+import { useAuth } from "@/lib/auth-context";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -29,6 +31,8 @@ export default function CourseDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [course, setCourse] = useState<CourseDetail | null>(null);
+  const { user } = useAuth();
+  const canManage = !!course && (user?.role === "admin" || (user?.role === "teacher" && course.owner_id === user.id));
   const [error, setError] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [openTopics, setOpenTopics] = useState<Record<number, boolean>>({});
@@ -136,11 +140,11 @@ export default function CourseDetailPage() {
                   {completed > 0 ? "Continue course" : "Start course"}
                 </ButtonLink>
               )
-            ) : (
+            ) : user?.role === "student" ? (
               <Button variant="gold" size="lg" loading={enrolling} onClick={enroll}>
                 Enrol for free
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </Card>
@@ -156,6 +160,8 @@ export default function CourseDetailPage() {
           <ProgressBar value={course.progress} className="mt-2" barClassName={tone.solid} />
         </Card>
       )}
+
+      {canManage && <CourseManager course={course} onChanged={load} />}
 
       {/* Curriculum */}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">

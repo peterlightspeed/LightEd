@@ -214,3 +214,71 @@ export interface ProgressData {
     completed_at: string | null;
   }[];
 }
+
+/* ------------------------------------------------------------ v3: teacher / planner / audit */
+export interface Risk {
+  band: "low" | "medium" | "high";
+  score: number;
+  factors: string[];
+}
+
+export interface RosterStudent {
+  id: number;
+  name: string;
+  email: string;
+  courses: string[];
+  avg_score: number | null;
+  attempts: number;
+  completion: number;
+  lessons_completed: number;
+  last_active: string | null;
+  risk: Risk;
+}
+
+export interface StudentDetail extends RosterStudent {
+  course_progress: {
+    id: number;
+    title: string;
+    completion: number;
+    lessons_completed: number;
+    lessons_total: number;
+    avg_score: number | null;
+  }[];
+  topic_scores: { topic_id: number; topic: string; course_id: number; score: number; attempts: number }[];
+  recent_attempts: { id: number; lesson: string; quiz: string; score: number; created_at: string | null }[];
+}
+
+export interface PlanItem {
+  lesson_id: number;
+  title: string;
+  topic: string;
+  minutes: number;
+  kind: "learn" | "revise";
+  reason: string;
+}
+
+export interface StudyPlan {
+  course: { id: number; title: string };
+  exam_date: string;
+  minutes_per_day: number;
+  weak_topics: string[];
+  total_minutes: number;
+  unscheduled: number;
+  days: { date: string; total_minutes: number; items: PlanItem[] }[];
+}
+
+export interface DraftQuestion {
+  prompt: string;
+  options: string[];
+  answer_index: number;
+  explanation?: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  action: string;
+  actor: string;
+  detail: string;
+  ip: string;
+  created_at: string | null;
+}

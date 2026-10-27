@@ -32,7 +32,7 @@ pip install -r requirements.txt  # works on Python 3.13 now (old pins were remov
 # It points at a local Postgres that you probably don't have running -> connection refused.
 # With DATABASE_URL unset, the API uses a local SQLite file automatically.
 
-python -m app.db.seed                       # creates tables + demo users/courses
+python -m app.db.seed                       # creates tables + demo users/courses (works on a fresh DB)
 uvicorn app.main:app --reload --port 8000   # http://localhost:8000/docs
 ```
 

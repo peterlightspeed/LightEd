@@ -6,11 +6,12 @@ placeholder so the MVP is not blocked on provider setup.
 import logging
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.services.audit import record
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
@@ -47,7 +48,7 @@ def _issue(user: User) -> Token:
 
 
 @router.post("/register", response_model=Token, status_code=201)
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)):
     if payload.role not in ALLOWED_SIGNUP_ROLES:
         raise HTTPException(400, "Role must be 'student' or 'teacher'")
     if db.scalar(select(User).where(User.email == payload.email.lower())):
@@ -62,17 +63,20 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    record(db, "auth.register", user=user, detail=f"role={user.role}", request=request)
     return _issue(user)
 
 
 @router.post("/login", response_model=Token)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user and not user.hashed_password:
         # Account was created with Google and has no password.
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "This account uses Google sign-in. Click 'Continue with Google'.")
     if not user or not verify_password(payload.password, user.hashed_password):
+        record(db, "auth.login_failed", actor=payload.email.lower(), request=request)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
+    record(db, "auth.login", user=user, request=request)
     return _issue(user)
 
 

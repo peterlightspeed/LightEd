@@ -181,13 +181,14 @@ def teacher_dashboard(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("teacher", "admin")),
 ):
-    courses = db.scalars(
-        select(Course)
-        .options(selectinload(Course.topics).selectinload(Topic.lessons))
-        .where(Course.owner_id == user.id)
-    ).all()
+    course_stmt = select(Course).options(selectinload(Course.topics).selectinload(Topic.lessons))
+    if user.role != "admin":
+        course_stmt = course_stmt.where(Course.owner_id == user.id)
+    courses = db.scalars(course_stmt).all()
 
-    students = db.scalars(select(User).where(User.role == "student")).all()
+    # Only students enrolled in THIS teacher's courses (admins: all enrolled students).
+    enrolled_ids = {e.user_id for e in db.scalars(select(Enrollment).where(Enrollment.course_id.in_([c.id for c in courses] or [-1])))}
+    students = db.scalars(select(User).where(User.id.in_(enrolled_ids or {-1}), User.role == "student")).all()
     student_rows = []
     for s in students:
         avg = average_score(db, s.id)
@@ -236,7 +237,7 @@ def teacher_dashboard(
             "at_risk": len([s for s in student_rows if s["status"] == "at_risk"]),
         },
         "courses": course_rows,
-        "students": sorted(student_rows, key=lambda s: s["avg_score"])[:8],
+        "students": sorted(student_rows, key=lambda s: (s["status"] != "at_risk", s["avg_score"]))[:6],
     }
 
 
