@@ -78,7 +78,10 @@ def seed() -> None:
     db = SessionLocal()
     try:
         if db.scalar(select(Course).limit(1)):
-            print("Courses already present. Skipping.")
+            from app.db.catalog_extra import ensure_extra_courses
+
+            n = ensure_extra_courses(db)
+            print(f"Courses already present. Added {n} missing starter course(s).")
             return
 
         teacher = User(
@@ -389,3 +392,8 @@ def seed() -> None:
 
 if __name__ == "__main__":
     seed()
+    from app.db.catalog_extra import ensure_extra_courses
+
+    _db = SessionLocal()
+    print(f"Starter catalogue top-up: {ensure_extra_courses(_db)} added")
+    _db.close()

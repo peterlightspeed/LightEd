@@ -7,6 +7,7 @@
  * student mark the lesson complete, and links to the quiz + next/prev lessons.
  */
 import Link from "next/link";
+import Resources from "@/components/lessons/Resources";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -128,7 +129,7 @@ export default function LessonPage() {
         <p className="mt-2 text-sm text-muted">{lesson.summary}</p>
       </div>
 
-      <Card className="p-7 sm:p-9">
+      <Card className="p-5 sm:p-9">
         <RichText text={lesson.content} />
 
         {/* AI tutor nudge — the real endpoint is a stub in the MVP. */}
@@ -142,6 +143,8 @@ export default function LessonPage() {
           </div>
         </div>
       </Card>
+
+      <Resources lessonId={lesson.id} />
 
       {/* Actions */}
       <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

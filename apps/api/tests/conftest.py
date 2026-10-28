@@ -2,6 +2,7 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///./test.db")
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret")
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
 import pytest
 from fastapi.testclient import TestClient

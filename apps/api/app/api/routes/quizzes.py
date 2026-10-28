@@ -11,6 +11,7 @@ from app.api.deps import get_current_user, require_roles
 from app.api.permissions import lesson_for_edit
 from app.services import aigen
 from app.services.audit import record
+from app.services.notify import notify
 from pydantic import BaseModel, Field
 from fastapi import Request
 from app.db.session import get_db
@@ -108,6 +109,7 @@ def submit_attempt(
     db.add(attempt)
     db.commit()
     db.refresh(attempt)
+    _alert_low_score(db, quiz, user, score)
 
     return AttemptResult(
         id=attempt.id,
@@ -208,5 +210,29 @@ def save_quiz(
         db.add(quiz)
     db.commit()
     db.refresh(quiz)
+    _notify_students(db, lesson, quiz)
     record(db, "quiz.publish", user=user, detail=f"lesson {lesson_id}: {len(questions)} questions", request=request)
     return {"id": quiz.id, "lesson_id": lesson_id, "title": quiz.title, "question_count": len(questions)}
+
+
+def _notify_students(db: Session, lesson: Lesson, quiz: Quiz) -> None:
+    """Tell every enrolled student that a new quiz is available (PDF FR-22)."""
+    from app.models.enrollment import Enrollment
+    from app.models.topic import Topic
+
+    topic = db.get(Topic, lesson.topic_id)
+    for uid in db.scalars(select(Enrollment.user_id).where(Enrollment.course_id == topic.course_id)):
+        notify(db, uid, "New quiz available", f"{lesson.title} — checkpoint is ready.", kind="quiz", link=f"/quizzes/{quiz.id}")
+
+
+def _alert_low_score(db: Session, quiz: Quiz, student: User, score: float) -> None:
+    """Teacher alert when a student scores under 50% (an early at-risk signal)."""
+    if score >= 50:
+        return
+    from app.models.course import Course
+    from app.models.topic import Topic
+
+    lesson = db.get(Lesson, quiz.lesson_id)
+    course = db.get(Course, db.get(Topic, lesson.topic_id).course_id)
+    notify(db, course.owner_id, "Student may need help", f"{student.full_name} scored {round(score)}% on {lesson.title}.",
+           kind="risk", link=f"/students/{student.id}")

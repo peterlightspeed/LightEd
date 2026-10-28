@@ -110,7 +110,32 @@ export default function AdminDashboardPage() {
 
       <Card>
         <CardHeader title="Users" subtitle="Change a role to grant teacher or admin access." />
-        <div className="mt-4 overflow-x-auto">
+        {/* Phones: one card per user, role select stays usable. */}
+        <div className="mt-4 divide-y divide-line/70 md:hidden">
+          {users.map((user) => (
+            <div key={user.id} className="py-3">
+              <div className="flex items-center gap-3">
+                <Avatar name={user.full_name} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-ink">{user.full_name}</p>
+                  <p className="truncate text-xs text-muted">{user.email}</p>
+                </div>
+              </div>
+              <Select
+                value={user.role}
+                disabled={busyId === user.id}
+                onChange={(e) => changeRole(user.id, e.target.value as Role)}
+                className="mt-2 w-full"
+                aria-label={`Role for ${user.full_name}`}
+              >
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+                <option value="admin">Admin</option>
+              </Select>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 hidden overflow-x-auto md:block">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">

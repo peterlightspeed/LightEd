@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.ratelimit import RateLimiter
 from app.services.audit import record
 from app.core.config import settings
 from app.core.security import (
@@ -47,7 +48,7 @@ def _issue(user: User) -> Token:
     )
 
 
-@router.post("/register", response_model=Token, status_code=201)
+@router.post("/register", dependencies=[Depends(RateLimiter(8, 600, "register"))], response_model=Token, status_code=201)
 def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)):
     if payload.role not in ALLOWED_SIGNUP_ROLES:
         raise HTTPException(400, "Role must be 'student' or 'teacher'")
@@ -67,7 +68,7 @@ def register(payload: UserCreate, request: Request, db: Session = Depends(get_db
     return _issue(user)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(RateLimiter(10, 60, "login"))])
 def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == payload.email.lower()))
     if user and not user.hashed_password:
@@ -94,18 +95,6 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
     return user
-
-
-@router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """MVP: always returns 200 so the endpoint cannot be used to enumerate emails.
-
-    TODO: generate a signed reset token and email it (SendGrid/Resend).
-    """
-    db.scalar(select(User).where(User.email == payload.email.lower()))
-    return MessageResponse(
-        message="If an account exists for that email, a reset link has been sent."
-    )
 
 
 @router.get("/providers")

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, get_optional_user, require_roles
 from app.api.permissions import course_for_edit
+from app.services.notify import notify
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.enrollment import Enrollment
@@ -136,6 +137,8 @@ def enroll(
     db.add(enrollment)
     db.commit()
     db.refresh(enrollment)
+    course = db.get(Course, course_id)
+    notify(db, course.owner_id, "New student enrolled", f"{user.full_name} enrolled in {course.title}.", kind="enrol", link="/students")
     return enrollment
 
 

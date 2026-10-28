@@ -195,7 +195,22 @@ export default function TeacherDashboardPage() {
             </span>
           }
         />
-        <div className="mt-4 overflow-x-auto">
+        {/* Phones: tappable cards (no sideways scrolling). */}
+        <div className="mt-4 divide-y divide-line/70 md:hidden">
+          {students.map((student) => (
+            <Link key={student.id} href={`/students/${student.id}`} className="flex min-h-[64px] items-center gap-3 py-3">
+              <Avatar name={student.name} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold text-ink">{student.name}</p>
+                <p className="text-xs text-muted">{Math.round(student.avg_score)}% avg · {student.lessons_completed} lessons</p>
+              </div>
+              <Badge tone={student.status === "at_risk" ? "rose" : "green"}>
+                {student.status === "at_risk" ? "At risk" : "On track"}
+              </Badge>
+            </Link>
+          ))}
+        </div>
+        <div className="mt-4 hidden overflow-x-auto md:block">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">

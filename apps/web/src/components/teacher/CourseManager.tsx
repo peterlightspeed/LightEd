@@ -4,13 +4,123 @@
  * Owner-only panel on the course page: add topics, add lessons, and manage each lesson's quiz.
  * Everything calls the existing authoring endpoints; the backend re-checks ownership.
  */
-import { useState } from "react";
-import { ChevronDown, ListChecks, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Copy, FileUp, Link2, ListChecks, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import QuizEditor from "@/components/teacher/QuizEditor";
 import { Button, Card, CardHeader, Input } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, apiUpload } from "@/lib/api";
 import type { CourseDetail } from "@/types";
+
+
+/** Class code teachers share so students can join (PDF FR-06). */
+function JoinCodeCard({ courseId }: { courseId: number }) {
+  const [code, setCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    api.get<{ code: string }>(`/courses/${courseId}/join-code`).then((d) => setCode(d.code)).catch(() => undefined);
+  }, [courseId]);
+
+  async function reset() {
+    if (!confirm("Generate a new code? The old code will stop working.")) return;
+    const d = await api.post<{ code: string }>(`/courses/${courseId}/join-code/reset`);
+    setCode(d.code);
+  }
+  async function copy() {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard blocked */
+    }
+  }
+  return (
+    <div className="rounded-2xl bg-brand-50 p-4">
+      <p className="text-xs font-bold uppercase tracking-wider text-brand-600">Class code</p>
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <span className="font-display text-3xl font-extrabold tracking-[0.2em] text-ink">{code ?? "······"}</span>
+        <button onClick={copy} className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-sm font-semibold text-ink">
+          <Copy className="h-4 w-4" /> {copied ? "Copied" : "Copy"}
+        </button>
+        <button onClick={reset} className="inline-flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted hover:bg-white" aria-label="Generate a new code">
+          <RefreshCw className="h-4 w-4" /> New
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-muted">Students enter this on the Courses page (&ldquo;Join with a class code&rdquo;).</p>
+    </div>
+  );
+}
+
+/** Upload a PDF -> its text is added to the lesson box for you to review (the PDF is not stored). */
+function PdfImport({ onText }: { onText: (t: string) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    setBusy(true); setMsg(null);
+    try {
+      const d = await apiUpload<{ text: string; pages: number }>("/materials/extract-pdf", f);
+      onText(d.text);
+      setMsg(`Imported ${d.pages} page(s). Review and edit the text below.`);
+    } catch (x) {
+      setMsg(x instanceof Error ? x.message : "Could not import that PDF.");
+    } finally { setBusy(false); }
+  }
+  return (
+    <div>
+      <input ref={input} type="file" accept="application/pdf" className="hidden" onChange={pick} />
+      <Button type="button" variant="secondary" loading={busy} onClick={() => input.current?.click()}>
+        <FileUp className="h-4 w-4" /> Import text from a PDF
+      </Button>
+      {msg && <p className="mt-1.5 text-xs text-muted">{msg}</p>}
+    </div>
+  );
+}
+
+/** Extra reading links for one lesson. */
+function ResourceLinks({ lessonId }: { lessonId: number }) {
+  const [items, setItems] = useState<{ id: number; title: string; url: string }[]>([]);
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const load = () => api.get<typeof items>(`/lessons/${lessonId}/resources`).then(setItems).catch(() => undefined);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [lessonId]);
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    try {
+      await api.post(`/lessons/${lessonId}/resources`, { title, url });
+      setTitle(""); setUrl(""); load();
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : "Could not add the link (it must start with https://).");
+    }
+  }
+  return (
+    <div className="mt-3 rounded-2xl bg-mist/70 p-3 sm:p-4">
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-ink"><Link2 className="h-4 w-4" /> Resource links</p>
+      {items.map((r) => (
+        <div key={r.id} className="mt-2 flex items-center justify-between gap-2 text-sm">
+          <a href={r.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-brand-600">{r.title}</a>
+          <button onClick={async () => { await api.delete(`/resources/${r.id}`); load(); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-rose-500 hover:bg-white" aria-label={`Remove ${r.title}`}>
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+      <form onSubmit={add} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
+        <input className="input-base !py-2" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required minLength={2} aria-label="Resource title" />
+        <input className="input-base !py-2" placeholder="https://…" type="url" value={url} onChange={(e) => setUrl(e.target.value)} required aria-label="Resource URL" />
+        <Button type="submit" variant="secondary">Add</Button>
+      </form>
+      {err && <p className="mt-2 text-xs font-medium text-rose-600">{err}</p>}
+    </div>
+  );
+}
 
 export default function CourseManager({ course, onChanged }: { course: CourseDetail; onChanged: () => void }) {
   const [topicTitle, setTopicTitle] = useState("");
@@ -61,6 +171,8 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
     <Card className="p-5 sm:p-6">
       <CardHeader title="Manage this course" subtitle="Add topics, lessons and quizzes. Students see changes immediately." />
 
+      <div className="mt-4"><JoinCodeCard courseId={course.id} /></div>
+
       {error && <p className="mt-3 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-700">{error}</p>}
 
       <form onSubmit={addTopic} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
@@ -97,7 +209,12 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
                     <ChevronDown className={`h-4 w-4 transition ${quizFor === l.id ? "rotate-180" : ""}`} />
                   </button>
                 </div>
-                {quizFor === l.id && <QuizEditor lessonId={l.id} onSaved={onChanged} />}
+                {quizFor === l.id && (
+                  <>
+                    <QuizEditor lessonId={l.id} onSaved={onChanged} />
+                    <ResourceLinks lessonId={l.id} />
+                  </>
+                )}
               </div>
             ))}
 
@@ -108,6 +225,7 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
                   <Input label="Short summary" name="lsummary" value={lesson.summary} onChange={(e) => setLesson({ ...lesson, summary: e.target.value })} />
                   <Input label="Minutes" name="lmin" type="number" min={1} max={240} value={lesson.minutes} onChange={(e) => setLesson({ ...lesson, minutes: e.target.value })} />
                 </div>
+                <PdfImport onText={(t) => setLesson((l) => ({ ...l, content: l.content ? l.content + "\n\n" + t : t }))} />
                 <div>
                   <label className="label" htmlFor={`content-${topic.id}`}>Lesson content</label>
                   <textarea id={`content-${topic.id}`} rows={7} className="input-base" value={lesson.content} onChange={(e) => setLesson({ ...lesson, content: e.target.value })} placeholder="Write the lesson. The AI tutor and quiz generator use this text. Use **bold** and blank lines between paragraphs." />

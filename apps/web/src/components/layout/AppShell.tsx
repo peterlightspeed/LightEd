@@ -26,6 +26,8 @@ import {
   X,
 } from "lucide-react";
 
+import NotificationBell from "@/components/NotificationBell";
+import ThemeToggle from "@/components/ThemeToggle";
 import ProductTour from "@/components/tour/ProductTour";
 import { getTourSteps } from "@/components/tour/tourSteps";
 import { Avatar, Badge, Logo, PageLoader } from "@/components/ui";
@@ -204,9 +206,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Badge tone="blue" className="hidden sm:inline-flex">
                 <GraduationCap className="h-3.5 w-3.5" /> {roleLabel}
               </Badge>
+              <ThemeToggle />
+              <NotificationBell />
               <button
                 onClick={() => setTourOpen(true)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-mist hover:text-ink"
+                className="hidden h-11 w-11 items-center justify-center rounded-xl text-muted hover:bg-mist hover:text-ink sm:flex"
                 aria-label="Take a tour"
                 title="Take a tour"
               >

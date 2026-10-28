@@ -77,3 +77,10 @@
 - [ ] Dark mode (FR-25) · notifications (FR-22) · PDF/material upload (FR-05) · class join codes (FR-06)
 - [ ] Rate limiting on login/AI endpoints · Alembic migrations before real users
 - [ ] ML risk model (Random Forest) once real data exists (rule-based today)
+
+## 8. v4 status
+- [x] Dark mode (FR-25) · notifications (FR-22) · PDF import + resource links (FR-05) · class codes (FR-06)
+- [x] Rate limiting · password-reset emails · Alembic baseline · ML prototype (synthetic)
+- [ ] Redis-backed rate limiter if you run more than one API instance
+- [ ] Train the Random Forest on REAL data after a pilot, then wire it behind the risk endpoint
+- [ ] Scanned-PDF (OCR) import · parent dashboard · offline lesson caching

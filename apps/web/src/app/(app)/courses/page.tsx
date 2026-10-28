@@ -8,6 +8,7 @@
  * and this avoids extra round-trips.
  */
 import Link from "next/link";
+import JoinWithCode from "@/components/JoinWithCode";
 import NewCourseForm from "@/components/teacher/NewCourseForm";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useMemo, useState } from "react";
@@ -59,6 +60,7 @@ export default function CoursesPage() {
 
   return (
     <div className="space-y-7">
+      {user?.role === "student" && <JoinWithCode />}
       {creating && <NewCourseForm onCancel={() => setCreating(false)} />}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>

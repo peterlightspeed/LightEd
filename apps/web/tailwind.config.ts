@@ -8,7 +8,9 @@ import type { Config } from "tailwindcss";
  * mist  = soft lavender page background
  */
 const config: Config = {
-  content: ["./src/app/**/*.{ts,tsx}", "./src/components/**/*.{ts,tsx}"],
+  darkMode: "class",
+  // NOTE: src/lib is scanned too: it holds class names (course accent gradients) that must be generated.
+  content: ["./src/app/**/*.{ts,tsx}", "./src/components/**/*.{ts,tsx}", "./src/lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
@@ -40,10 +42,11 @@ const config: Config = {
           400: "#FFC83D",
           500: "#f5b414",
         },
-        mist: "#F4F6FC",
-        ink: "#0F1B33",
-        muted: "#6B7A99",
-        line: "#E4E9F5",
+        // Semantic tokens read CSS variables (see globals.css) so dark mode flips them automatically.
+        mist: "rgb(var(--c-mist) / <alpha-value>)",
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
+        line: "rgb(var(--c-line) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],

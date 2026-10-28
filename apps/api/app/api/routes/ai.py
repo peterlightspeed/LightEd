@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.ratelimit import RateLimiter
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.enrollment import Enrollment
@@ -32,7 +33,7 @@ class TutorResponse(BaseModel):
     provider: str = "offline"
 
 
-@router.post("/tutor", response_model=TutorResponse)
+@router.post("/tutor", response_model=TutorResponse, dependencies=[Depends(RateLimiter(30, 60, "tutor"))])
 def tutor(payload: TutorRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     # Which courses may this user ask about? Their enrolments (teachers: their own courses).
     if payload.course_id:

@@ -89,4 +89,21 @@ export const api = {
     apiFetch<T>(path, { method: "PATCH", body }),
   put: <T>(path: string, body?: unknown) =>
     apiFetch<T>(path, { method: "PUT", body }),
+  delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };
+
+/** multipart upload (the browser sets the boundary header itself, so no Content-Type here). */
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  const token = typeof window !== "undefined" ? localStorage.getItem("lighted_token") : null;
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { method: "POST", body: form, headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    throw new ApiError(NETWORK_MESSAGE, 0);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(typeof data.detail === "string" ? data.detail : "Upload failed", res.status);
+  return data as T;
+}

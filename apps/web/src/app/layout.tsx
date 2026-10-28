@@ -31,7 +31,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          // Runs before paint so the saved/system theme is applied with no white flash.
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('lighted_theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-mist font-sans text-ink antialiased">
         <AuthProvider>{children}
         <PwaProvider /></AuthProvider>

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
-from app.api.routes import admin, ai, auth, courses, dashboard, lessons, planner, progress, quizzes, teacher
+from app.api.routes import admin, ai, auth, courses, dashboard, lessons, extras, planner, progress, quizzes, teacher
 from app.core.config import settings
 
 logger = logging.getLogger("lighted")
@@ -38,6 +38,12 @@ async def lifespan(app: FastAPI):
 
                 seed()
                 logger.info("Seeded demo data (catalogue was empty)")
+            # Always top up the starter catalogue (idempotent, by title).
+            from app.db.catalog_extra import ensure_extra_courses
+
+            added = ensure_extra_courses(db)
+            if added:
+                logger.info("Added %s starter course(s)", added)
         finally:
             db.close()
     yield
@@ -89,6 +95,7 @@ app.include_router(admin.router)
 app.include_router(ai.router)
 app.include_router(teacher.router)
 app.include_router(planner.router)
+app.include_router(extras.router)
 
 
 @app.get("/health", tags=["meta"])

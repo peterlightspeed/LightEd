@@ -153,7 +153,9 @@ export function Card({
   children: React.ReactNode;
   as?: React.ElementType;
 }) {
-  return <Tag className={cn("card", className)}>{children}</Tag>;
+  // Default inner padding, unless the caller sets its own (p-0, p-4, px-5, !p-4 ...).
+  const hasPadding = /(^|\s)!?(p|px|py|pt|pb|pl|pr)-/.test(className ?? "");
+  return <Tag className={cn("card", !hasPadding && "p-5 sm:p-6", className)}>{children}</Tag>;
 }
 
 export function CardHeader({

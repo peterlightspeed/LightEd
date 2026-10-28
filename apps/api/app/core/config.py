@@ -29,6 +29,14 @@ class Settings(BaseSettings):
     backend_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     # Your deployed frontend, e.g. https://light-ed.vercel.app (also allowed by CORS).
     frontend_url: str | None = None
+    # Rate limiting (in-memory, per instance). Disable in tests with RATE_LIMIT_ENABLED=false.
+    rate_limit_enabled: bool = True
+    # Email for password reset. If smtp_host is empty the reset link is only logged (dev mode).
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str = "LightEd <lightedsupport@gmail.com>"
     # Safety net: any *.vercel.app origin (production + preview deploys) is allowed
     # by default so a mistyped BACKEND_CORS_ORIGINS can never lock you out again.
     # Set to an empty string to disable.
