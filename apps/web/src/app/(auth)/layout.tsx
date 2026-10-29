@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, Sparkles } from "lucide-react";
 
+import { StudentScene } from "@/components/illustrations/People";
 import { Logo } from "@/components/ui";
 import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY } from "@/lib/site";
 
@@ -33,6 +34,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             Personalized lessons, instant quizzes and progress insights that help every
             student move forward — and every teacher see where to help.
           </p>
+
+          <StudentScene className="mt-8 hidden w-full max-w-[360px] xl:block" />
 
           <ul className="mt-8 space-y-3">
             {[

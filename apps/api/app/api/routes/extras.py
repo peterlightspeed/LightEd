@@ -17,7 +17,7 @@ from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.course import Course
 from app.models.enrollment import Enrollment
-from app.models.extras import CourseJoinCode, LessonResource, Notification, PasswordReset
+from app.models.extras import CourseJoinCode, LessonResource, LiveSession, Notification, PasswordReset
 from app.models.lesson import Lesson
 from app.models.user import User
 from app.services.audit import record
@@ -206,3 +206,99 @@ def reset_password(payload: ResetRequest, request: Request, db: Session = Depend
     db.commit()
     record(db, "auth.password_reset", user=user, request=request)
     return {"message": "Password updated. You can now log in."}
+
+
+# ------------------------------------------------------------------ live classes
+class SessionCreate(BaseModel):
+    title: str = Field(min_length=3, max_length=160)
+    starts_at: datetime
+    duration_minutes: int = Field(default=60, ge=15, le=240)
+    link: HttpUrl  # Google Meet / Zoom / Teams link pasted by the teacher
+
+
+def _aware(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _session_json(row: LiveSession, course_title: str | None = None) -> dict:
+    start = _aware(row.starts_at)
+    end = start + timedelta(minutes=row.duration_minutes)
+    now = datetime.now(timezone.utc)
+    # "live" opens 10 minutes before the start so students can walk in early.
+    status = "ended" if now > end else "live" if now >= start - timedelta(minutes=10) else "upcoming"
+    out = {"id": row.id, "course_id": row.course_id, "title": row.title, "starts_at": start.isoformat(),
+           "duration_minutes": row.duration_minutes, "link": row.link, "status": status}
+    if course_title:
+        out["course_title"] = course_title
+    return out
+
+
+def _can_view_course(db: Session, course: Course, user: User) -> bool:
+    if user.role == "admin" or course.owner_id == user.id:
+        return True
+    return bool(db.scalar(select(Enrollment).where(Enrollment.user_id == user.id, Enrollment.course_id == course.id)))
+
+
+@router.get("/courses/{course_id}/sessions")
+def list_sessions(course_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    course = db.get(Course, course_id)
+    if not course:
+        raise HTTPException(404, "Course not found")
+    if not _can_view_course(db, course, user):
+        raise HTTPException(403, "Enrol in this course to see its live classes.")
+    rows = db.scalars(select(LiveSession).where(LiveSession.course_id == course_id).order_by(LiveSession.starts_at)).all()
+    items = [_session_json(r) for r in rows]
+    # upcoming/live first (soonest first), then ended (most recent first)
+    upcoming = [i for i in items if i["status"] != "ended"]
+    ended = [i for i in items if i["status"] == "ended"][::-1]
+    return upcoming + ended
+
+
+@router.post("/courses/{course_id}/sessions", status_code=201)
+def create_session(course_id: int, payload: SessionCreate, request: Request, db: Session = Depends(get_db),
+                   user: User = Depends(require_roles("teacher", "admin"))):
+    course = course_for_edit(db, course_id, user)
+    if _aware(payload.starts_at) < datetime.now(timezone.utc) - timedelta(hours=1):
+        raise HTTPException(400, "Choose a start time that is not in the past.")
+    row = LiveSession(course_id=course_id, title=payload.title.strip(), starts_at=_aware(payload.starts_at),
+                      duration_minutes=payload.duration_minutes, link=str(payload.link))
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    when = _aware(payload.starts_at).strftime("%d %b %Y, %H:%M UTC")
+    for uid in db.scalars(select(Enrollment.user_id).where(Enrollment.course_id == course_id)):
+        notify(db, uid, "Live class scheduled", f"{payload.title} ({course.title}) on {when}.", kind="live",
+               link=f"/courses/{course_id}")
+    record(db, "live.schedule", user=user, detail=f"course {course_id}: {payload.title}", request=request)
+    return _session_json(row)
+
+
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: int, db: Session = Depends(get_db), user: User = Depends(require_roles("teacher", "admin"))):
+    row = db.get(LiveSession, session_id)
+    if not row:
+        raise HTTPException(404, "Session not found")
+    course_for_edit(db, row.course_id, user)
+    db.delete(row)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/sessions/upcoming")
+def upcoming_sessions(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Next live classes (next 14 days + ones in progress) across the user's courses."""
+    if user.role == "student":
+        cids = list(db.scalars(select(Enrollment.course_id).where(Enrollment.user_id == user.id)))
+    elif user.role == "teacher":
+        cids = list(db.scalars(select(Course.id).where(Course.owner_id == user.id)))
+    else:
+        cids = list(db.scalars(select(Course.id)))
+    now = datetime.now(timezone.utc)
+    rows = db.execute(
+        select(LiveSession, Course.title).join(Course, Course.id == LiveSession.course_id)
+        .where(LiveSession.course_id.in_(cids or [-1]), LiveSession.starts_at >= now - timedelta(hours=4),
+               LiveSession.starts_at <= now + timedelta(days=14))
+        .order_by(LiveSession.starts_at)
+    ).all()
+    items = [_session_json(r, t) for r, t in rows]
+    return [i for i in items if i["status"] != "ended"][:5]

@@ -282,3 +282,14 @@ export interface AuditEntry {
   ip: string;
   created_at: string | null;
 }
+
+export interface LiveSessionItem {
+  id: number;
+  course_id: number;
+  course_title?: string;
+  title: string;
+  starts_at: string;
+  duration_minutes: number;
+  link: string;
+  status: "upcoming" | "live" | "ended";
+}

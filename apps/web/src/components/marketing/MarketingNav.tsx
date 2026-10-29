@@ -8,12 +8,6 @@ import { ButtonLink, Logo } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { homeForRole } from "@/lib/auth";
 
-const links = [
-  { href: "#features", label: "Features" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#for-teachers", label: "For teachers" },
-  { href: "#contact", label: "Contact" },
-];
 
 export default function MarketingNav() {
   const [open, setOpen] = useState(false);
@@ -37,13 +31,6 @@ export default function MarketingNav() {
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex">
-          {links.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm font-medium text-muted transition hover:text-ink">
-              {l.label}
-            </a>
-          ))}
-        </nav>
 
         <div className="hidden items-center gap-3 md:flex">
           {!loading && user ? (
@@ -74,11 +61,6 @@ export default function MarketingNav() {
       {open && (
         <div className="border-t border-line bg-white px-4 py-4 md:hidden">
           <div className="flex flex-col gap-3">
-            {links.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="py-1 text-sm font-medium text-muted">
-                {l.label}
-              </a>
-            ))}
             <div className="mt-2 flex gap-3">
               <ButtonLink href="/login" variant="secondary" size="sm" className="flex-1">
                 Log in

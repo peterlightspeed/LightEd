@@ -84,3 +84,8 @@
 - [ ] Redis-backed rate limiter if you run more than one API instance
 - [ ] Train the Random Forest on REAL data after a pilot, then wire it behind the risk endpoint
 - [ ] Scanned-PDF (OCR) import · parent dashboard · offline lesson caching
+
+## 9. v5 status
+- [x] Live classes (schedule + notify + Join) · landing redesign from review feedback
+- [ ] Real photos (with consent) to replace illustrations · attendance tracking for live classes (who clicked Join)
+- [ ] Built-in video (embed Jitsi/Daily) instead of external links · calendar (.ics) export

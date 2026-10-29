@@ -204,3 +204,4 @@ Email **lightedsupport@gmail.com** · Phone **0810 882 1809**
 Deploy/CORS problems: [FIX_BACKEND.md](FIX_BACKEND.md) · Google sign-in: [GOOGLE_AUTH.md](GOOGLE_AUTH.md)
 
 New in v3: see [UPDATE_V3.md](UPDATE_V3.md).
+Teaching + testing walkthrough: [TEACHING_GUIDE.md](TEACHING_GUIDE.md) · Latest changes: [UPDATE_V5.md](UPDATE_V5.md)

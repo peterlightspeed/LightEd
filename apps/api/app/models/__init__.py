@@ -3,7 +3,7 @@
 from app.db.session import Base  # noqa: F401
 from app.models.attempt import Attempt  # noqa: F401
 from app.models.audit import AuditLog  # noqa: F401
-from app.models.extras import CourseJoinCode, LessonResource, Notification, PasswordReset  # noqa: F401
+from app.models.extras import CourseJoinCode, LessonResource, LiveSession, Notification, PasswordReset  # noqa: F401
 from app.models.course import Course  # noqa: F401
 from app.models.enrollment import Enrollment  # noqa: F401
 from app.models.lesson import Lesson  # noqa: F401
@@ -27,4 +27,5 @@ __all__ = [
     "CourseJoinCode",
     "LessonResource",
     "PasswordReset",
+    "LiveSession",
 ]

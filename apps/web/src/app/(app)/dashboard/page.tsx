@@ -8,6 +8,8 @@
  * focus areas, recommendations, recent quiz attempts and weekly activity.
  */
 import Link from "next/link";
+import UpcomingSessions from "@/components/live/UpcomingSessions";
+import { greetingFor } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -74,7 +76,6 @@ export default function StudentDashboardPage() {
   }
 
   const { stats, continue_learning, courses, focus_areas, recommendations, recent_attempts, weekly_activity } = data;
-  const firstName = (user?.full_name ?? data.user.full_name).split(" ")[0];
   const maxActivity = Math.max(1, ...weekly_activity.map((d) => d.lessons));
 
   return (
@@ -84,7 +85,7 @@ export default function StudentDashboardPage() {
         <div>
           <p className="text-sm font-semibold text-brand-600">Your learning overview</p>
           <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-ink">
-            Good to see you, {firstName}
+            {greetingFor(user ?? data.user)}
           </h1>
           <p className="mt-1 text-sm text-muted">
             You&apos;ve completed {stats.lessons_completed} of {stats.lessons_total} lessons. Keep the streak alive.
@@ -105,6 +106,8 @@ export default function StudentDashboardPage() {
       </div>
 
       {/* ------------------------------------------------- Stat + progress */}
+      <UpcomingSessions />
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">

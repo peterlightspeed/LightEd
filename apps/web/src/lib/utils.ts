@@ -61,3 +61,22 @@ export const ACCENTS: Record<string, { bg: string; text: string; solid: string; 
 export function accent(name?: string) {
   return ACCENTS[name ?? "blue"] ?? ACCENTS.blue;
 }
+
+
+/** "Good morning" / "Good afternoon" / "Good evening" from the device's local time. */
+export function timeGreeting(date: Date = new Date()): string {
+  const h = date.getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
+
+/** Shared demo logins (student@/teacher@/admin@lighted.dev) belong to everyone, so we never greet them by a name. */
+export function isDemoAccount(email?: string | null): boolean {
+  return !!email && email.toLowerCase().endsWith("@lighted.dev");
+}
+
+/** "Good evening, Amina" for real accounts; just "Good evening" for demo accounts. */
+export function greetingFor(user?: { full_name?: string; email?: string } | null): string {
+  const g = timeGreeting();
+  if (!user?.full_name || isDemoAccount(user.email)) return g;
+  return `${g}, ${user.full_name.trim().split(" ")[0]}`;
+}

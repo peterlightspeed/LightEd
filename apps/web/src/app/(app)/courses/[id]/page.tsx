@@ -7,6 +7,7 @@
  * Lesson rows link straight into the lesson viewer.
  */
 import Link from "next/link";
+import SessionsPanel from "@/components/live/SessionsPanel";
 import CourseManager from "@/components/teacher/CourseManager";
 import { useAuth } from "@/lib/auth-context";
 import { useParams, useRouter } from "next/navigation";
@@ -160,6 +161,8 @@ export default function CourseDetailPage() {
           <ProgressBar value={course.progress} className="mt-2" barClassName={tone.solid} />
         </Card>
       )}
+
+      {(course.enrolled || canManage) && <SessionsPanel courseId={course.id} canManage={canManage} />}
 
       {canManage && <CourseManager course={course} onChanged={load} />}
 

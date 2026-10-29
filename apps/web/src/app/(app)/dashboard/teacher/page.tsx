@@ -7,6 +7,8 @@
  * "at risk" flag derived from average quiz scores on the backend.
  */
 import Link from "next/link";
+import UpcomingSessions from "@/components/live/UpcomingSessions";
+import { greetingFor } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -63,7 +65,6 @@ export default function TeacherDashboardPage() {
   }
 
   const { stats, courses, students } = data;
-  const firstName = (user?.full_name ?? data.user.full_name).split(" ")[0];
   const atRisk = students.filter((s) => s.status === "at_risk");
 
   const statCards = [
@@ -79,7 +80,7 @@ export default function TeacherDashboardPage() {
         <div>
           <p className="text-sm font-semibold text-brand-600">Teacher workspace</p>
           <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-ink">
-            Welcome, {firstName}
+            {greetingFor(user ?? data.user)}
           </h1>
           <p className="mt-1 text-sm text-muted">
             Here&apos;s how your classes are doing this week.
@@ -106,6 +107,8 @@ export default function TeacherDashboardPage() {
           );
         })}
       </div>
+
+      <UpcomingSessions />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Course progress */}

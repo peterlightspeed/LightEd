@@ -148,3 +148,34 @@ def test_login_rate_limit(client, monkeypatch):
     codes = [client.post("/auth/login", json={"email": "rl@example.com", "password": "whatever1"}).status_code for _ in range(12)]
     assert codes[:10] == [401] * 10 and 429 in codes[10:]
     ratelimit._hits.clear()
+
+
+def test_live_classes_flow(client):
+    from datetime import datetime, timedelta, timezone
+
+    t = _signup(client, "live-teacher@example.com", "teacher")
+    s = _signup(client, "live-student@example.com", name="Live Student")
+    outsider = _signup(client, "live-outsider@example.com")
+    c, _ = _course(client, t)
+    client.post(f"/courses/{c['id']}/enroll", headers=s)
+    soon = (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
+    later = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    past = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    body = {"title": "Week 1: Photosynthesis", "starts_at": soon, "duration_minutes": 45, "link": "https://meet.google.com/abc-defg-hij"}
+
+    assert client.post(f"/courses/{c['id']}/sessions", json=body, headers=s).status_code == 403      # students can't schedule
+    assert client.post(f"/courses/{c['id']}/sessions", json={**body, "starts_at": past}, headers=t).status_code == 400
+    assert client.post(f"/courses/{c['id']}/sessions", json={**body, "link": "javascript:alert(1)"}, headers=t).status_code == 422
+    made = client.post(f"/courses/{c['id']}/sessions", json=body, headers=t)
+    assert made.status_code == 201 and made.json()["status"] == "live"   # starts in 5 min -> doors open
+    client.post(f"/courses/{c['id']}/sessions", json={**body, "title": "Week 2 recap", "starts_at": later}, headers=t)
+
+    listed = client.get(f"/courses/{c['id']}/sessions", headers=s).json()
+    assert [i["status"] for i in listed] == ["live", "upcoming"]
+    assert client.get(f"/courses/{c['id']}/sessions", headers=outsider).status_code == 403          # not enrolled
+    assert any(n["kind"] == "live" for n in client.get("/notifications", headers=s).json()["items"])
+    assert len(client.get("/sessions/upcoming", headers=s).json()) == 2
+    assert client.get("/sessions/upcoming", headers=outsider).json() == []
+
+    assert client.delete(f"/sessions/{made.json()['id']}", headers=s).status_code == 403
+    assert client.delete(f"/sessions/{made.json()['id']}", headers=t).status_code == 200
