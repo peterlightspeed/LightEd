@@ -1,4 +1,5 @@
-"""Revision planner: turn weak topics into a prioritized study schedule."""
+
+"""Revision planner: prioritize weak topics and schedule study sessions."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,31 +7,50 @@ from dataclasses import dataclass
 from lighted_ai.weak_topics import TopicStrength, detect_weak_topics
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class RevisionItem:
     topic: str
-    priority: int  # 1 = highest
+    priority: int
     reason: str
     suggested_minutes: int
 
 
-def build_revision_plan(attempts: list[dict], days: int = 7) -> list[RevisionItem]:
-    """Create a prioritized revision plan from attempt history.
+def _validate_days(days: int) -> int:
+    if isinstance(days, bool) or not isinstance(days, int):
+        raise TypeError("days must be an integer.")
+    if not 1 <= days <= 365:
+        raise ValueError("days must be between 1 and 365.")
+    return days
 
-    Weakest topics get the highest priority and the most time.
+
+def build_revision_plan(
+    attempts: list[dict],
+    days: int = 7,
+) -> list[RevisionItem]:
+    """Build a prioritized list of revision topics.
+
+    The days argument is retained for API compatibility and validated.
+    It controls schedule length, not the number of unique weak topics.
     """
+    _validate_days(days)
     strengths: list[TopicStrength] = detect_weak_topics(attempts)
     plan: list[RevisionItem] = []
 
-    for i, t in enumerate(strengths):
-        if t.status == "strong":
+    for strength in strengths:
+        if strength.status == "strong":
             continue
-        minutes = 45 if t.status == "critical" else 30 if t.status == "weak" else 15
+
+        minutes = {
+            "critical": 45,
+            "weak": 30,
+            "ok": 15,
+        }.get(strength.status, 15)
+
         plan.append(
             RevisionItem(
-                topic=t.topic,
-                priority=i + 1,
-                reason=f"Average score {t.avg_score}% ({t.status})",
+                topic=strength.topic,
+                priority=len(plan) + 1,
+                reason=f"Average score {strength.avg_score:.2f}% ({strength.status})",
                 suggested_minutes=minutes,
             )
         )
@@ -40,25 +60,31 @@ def build_revision_plan(attempts: list[dict], days: int = 7) -> list[RevisionIte
             RevisionItem(
                 topic="All topics",
                 priority=1,
-                reason="No weak topics detected — do light review to maintain mastery.",
+                reason=(
+                    "No weak topics detected — light review can help "
+                    "maintain mastery."
+                ),
                 suggested_minutes=20,
             )
         )
+
     return plan
 
 
-def plan_as_schedule(attempts: list[dict], days: int = 7) -> list[dict]:
-    """Distribute revision items across the next `days` days."""
+def plan_as_schedule(
+    attempts: list[dict],
+    days: int = 7,
+) -> list[dict]:
+    """Distribute revision items across the requested number of days."""
+    days = _validate_days(days)
     plan = build_revision_plan(attempts, days=days)
-    schedule: list[dict] = []
-    for day in range(1, days + 1):
-        item = plan[(day - 1) % len(plan)]
-        schedule.append(
-            {
-                "day": day,
-                "topic": item.topic,
-                "minutes": item.suggested_minutes,
-                "reason": item.reason,
-            }
-        )
-    return schedule
+
+    return [
+        {
+            "day": day,
+            "topic": plan[(day - 1) % len(plan)].topic,
+            "minutes": plan[(day - 1) % len(plan)].suggested_minutes,
+            "reason": plan[(day - 1) % len(plan)].reason,
+        }
+        for day in range(1, days + 1)
+    ]
