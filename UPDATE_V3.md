@@ -47,7 +47,7 @@ longer see "Enrol for free".
 
 ## 6. Optional: real AI (Gemini)
 Works without any key (offline mode). For real LLM answers/quizzes add on Render: `GEMINI_API_KEY` (free key at
-aistudio.google.com). Optional `GEMINI_MODEL` (default `gemini-1.5-flash`). Answers stay grounded in course text.
+aistudio.google.com). Optional `GEMINI_MODEL` (default `gemini-3.8-flash`). Answers stay grounded in course text.
 
 ## 7. Deploy
 ```bash

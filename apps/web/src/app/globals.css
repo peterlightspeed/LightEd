@@ -169,3 +169,33 @@ video {
 .dark .shadow-card, .dark .shadow-float { --tw-shadow-color: rgba(0, 0, 0, 0.5); box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.6); }
 .dark .field, .dark .input-base { background-color: rgb(var(--c-mist)); color: rgb(var(--c-ink)); border-color: rgb(var(--c-line)); }
 .dark img[src*="logo-mark"] { filter: none; }
+
+/* ------------------------------------------------------------------ accessibility + polish (v6) */
+/* Keyboard users always get a visible focus ring, mouse/touch users don't. */
+:focus-visible {
+  outline: 2px solid #2f6bff;
+  outline-offset: 2px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none; /* .input-base draws its own ring */
+}
+/* Respect "reduce motion": kill animations/transitions instead of just shortening them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Selects: show the dropdown arrow that `appearance-none` removes. */
+select.input-base {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7a99' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  padding-right: 2.5rem;
+}

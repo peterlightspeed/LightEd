@@ -21,16 +21,23 @@ from app.services import aigen
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
+class ChatTurn(BaseModel):
+    role: str = Field(pattern="^(user|tutor)$")
+    text: str = Field(max_length=2000)
+
+
 class TutorRequest(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
     lesson_id: int | None = None
     course_id: int | None = None
+    history: list[ChatTurn] = Field(default_factory=list, max_length=12)
 
 
 class TutorResponse(BaseModel):
     answer: str
     sources: list[str] = []
     provider: str = "offline"
+    notice: str | None = None  # set when the AI model could not be used (shown to the student)
 
 
 @router.post("/tutor", response_model=TutorResponse, dependencies=[Depends(RateLimiter(30, 60, "tutor"))])
@@ -50,5 +57,13 @@ def tutor(payload: TutorRequest, db: Session = Depends(get_db), user: User = Dep
         .where(Course.id.in_(course_ids or [-1]))
     ).all()
     lessons = [{"id": l.id, "title": l.title, "content": l.content or l.summary or "", "course": c.title} for l, t, c in rows]
-    answer, sources, provider = aigen.tutor_answer(payload.question.strip(), lessons)
-    return TutorResponse(answer=answer, sources=sources, provider=provider)
+    answer, sources, provider, notice = aigen.tutor_answer(
+        payload.question.strip(), lessons, [t.model_dump() for t in payload.history]
+    )
+    return TutorResponse(answer=answer, sources=sources, provider=provider, notice=notice)
+
+
+@router.get("/status", dependencies=[Depends(RateLimiter(10, 60, "ai-status"))])
+def ai_status(user: User = Depends(get_current_user)):
+    """Is the AI actually reachable? Makes one tiny live call and reports the result (never the key)."""
+    return aigen.gemini_status()

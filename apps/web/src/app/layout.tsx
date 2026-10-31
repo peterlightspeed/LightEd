@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   },
   applicationName: "LightEd",
   appleWebApp: { capable: true, title: "LightEd", statusBarStyle: "default" },
+  // Chrome deprecated apple-mobile-web-app-capable on its own; this is the standard tag it asks for.
+  other: { "mobile-web-app-capable": "yes" },
   formatDetection: { telephone: false },
   keywords: ["LightEd", "AI tutor", "personalized learning", "education", "students", "teachers"],
 };

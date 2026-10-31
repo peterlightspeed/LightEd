@@ -33,15 +33,21 @@ export default function JoinWithCode() {
           <p className="font-display font-bold text-ink">Join with a class code</p>
           <p className="text-xs text-muted">Your teacher gave you a 6-character code.</p>
         </div>
-        <input
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          maxLength={8}
-          placeholder="ABC123"
-          aria-label="Class code"
-          className="input-base text-center font-mono tracking-[0.25em] sm:w-40"
-        />
-        <Button type="submit" loading={busy} disabled={code.trim().length < 4}>Join</Button>
+        <div className="flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            maxLength={8}
+            placeholder="ABC123"
+            aria-label="Class code"
+            autoCapitalize="characters"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            className="input-base min-w-0 flex-1 text-center font-mono tracking-[0.25em] sm:w-40 sm:flex-none"
+          />
+          <Button type="submit" loading={busy} disabled={code.trim().length < 4}>Join</Button>
+        </div>
       </form>
       {error && <p className="mt-2 text-sm font-medium text-rose-600">{error}</p>}
     </Card>

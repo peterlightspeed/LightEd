@@ -64,7 +64,9 @@ export default function SessionsPanel({ courseId, canManage }: { courseId: numbe
   const load = useCallback(() => {
     api.get<LiveSessionItem[]>(`/courses/${courseId}/sessions`).then(setItems).catch(() => setItems([]));
   }, [courseId]);
-  useEffect(load, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function schedule(e: React.FormEvent) {
     e.preventDefault();

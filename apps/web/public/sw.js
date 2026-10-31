@@ -4,7 +4,7 @@
  * - Page navigations: network-first, falling back to /offline.html when there is no connection.
  * - API calls (other origin) are NEVER cached, so data is always live and private.
  * Bump VERSION to invalidate old caches after a deploy. */
-const VERSION = "lighted-v1";
+const VERSION = "lighted-v2";
 const PRECACHE = ["/offline.html", "/icon-192.png", "/logo-mark.png"];
 
 self.addEventListener("install", (e) => {

@@ -91,13 +91,13 @@ export default function StudentDashboardPage() {
             You&apos;ve completed {stats.lessons_completed} of {stats.lessons_total} lessons. Keep the streak alive.
           </p>
         </div>
-        <div className="flex gap-3">
-          <ButtonLink href="/courses" variant="secondary">
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:flex">
+          <ButtonLink href="/courses" variant="secondary" className="whitespace-nowrap [&>svg]:hidden sm:[&>svg]:block">
             <BookOpen className="h-4 w-4" />
             Browse courses
           </ButtonLink>
           {continue_learning && (
-            <ButtonLink href={`/lessons/${continue_learning.lesson_id}`}>
+            <ButtonLink href={`/lessons/${continue_learning.lesson_id}`} className="whitespace-nowrap [&>svg]:hidden sm:[&>svg]:block">
               <PlayCircle className="h-4 w-4" />
               Continue learning
             </ButtonLink>

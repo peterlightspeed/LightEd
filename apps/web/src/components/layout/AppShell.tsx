@@ -107,7 +107,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/">
           <Logo variant="light" />
         </Link>
-        <button className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 lg:hidden" onClick={() => setMobileOpen(false)}>
+        <button className="flex h-11 w-11 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -190,6 +190,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <button className="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-mist lg:hidden" onClick={() => setMobileOpen(true)} data-tour="menu-btn" aria-label="Open menu">
               <Menu className="h-5 w-5" />
             </button>
+            <Link href={homeForRole(user.role)} className="flex items-center lg:hidden" aria-label="LightEd home">
+              <Logo size={30} showWordmark={false} className="min-[360px]:hidden" />
+              <Logo size={30} className="hidden min-[360px]:inline-flex" />
+            </Link>
 
             <div data-tour="search" className="hidden flex-1 items-center gap-2 rounded-xl border border-line bg-mist/60 px-3 py-2 text-sm text-muted sm:flex sm:max-w-sm">
               <Search className="h-4 w-4" />
@@ -219,7 +223,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <div className="relative" data-tour="user-menu">
                 <button
                   onClick={() => setMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 rounded-xl p-1 pr-2 hover:bg-mist"
+                  aria-label="Account menu"
+                  aria-expanded={menuOpen}
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl p-1 pr-2 hover:bg-mist"
                 >
                   <Avatar name={user.full_name} size="sm" />
                   <span className="hidden text-sm font-semibold text-ink sm:block">{user.full_name.split(" ")[0]}</span>
@@ -287,10 +293,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <li key={`${item.href}-b`} className="flex-1">
                 <Link
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   data-tour={item.label === "Overview" ? "nav-overview" : `nav-${item.label.toLowerCase()}`}
                   className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${active ? "text-brand-600" : "text-muted"}`}
                 >
-                  <Icon className="h-5 w-5" />
+                  <span className={`flex h-7 w-14 items-center justify-center rounded-full transition-colors ${active ? "bg-brand-50" : ""}`}>
+                    <Icon className="h-5 w-5" />
+                  </span>
                   {item.label === "Overview" ? "Home" : item.label === "AI Tutor" ? "Tutor" : item.label}
                 </Link>
               </li>

@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 /** Light/dark switch. Saved in localStorage; the initial class is set by a script in layout.tsx. */
 export default function ThemeToggle({ className = "" }: { className?: string }) {
   const [dark, setDark] = useState(false);
-  useEffect(() => setDark(document.documentElement.classList.contains("dark")), []);
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
 
   function toggle() {
     const next = !dark;

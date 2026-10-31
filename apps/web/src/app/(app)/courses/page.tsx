@@ -73,7 +73,7 @@ export default function CoursesPage() {
         {canCreate ? (
           <Button onClick={() => setCreating((v) => !v)}>{creating ? "Close" : "+ New course"}</Button>
         ) : (
-        <ButtonLink href="/progress" variant="secondary">
+        <ButtonLink href="/progress" variant="secondary" className="hidden sm:inline-flex">
           <Sparkles className="h-4 w-4" />
           My progress
         </ButtonLink>
@@ -82,13 +82,18 @@ export default function CoursesPage() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid gap-3 sm:grid-cols-[1fr_180px_180px]">
-          <Input
-            placeholder="Search courses…"
-            icon={<Search className="h-4 w-4" />}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_180px_180px]">
+          <div className="col-span-2 sm:col-span-1">
+            <Input
+              placeholder="Search courses…"
+              icon={<Search className="h-4 w-4" />}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search courses"
+              type="search"
+              enterKeyHint="search"
+            />
+          </div>
           <Select value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Filter by subject">
             <option value="all">All subjects</option>
             {subjects.map((s) => (
