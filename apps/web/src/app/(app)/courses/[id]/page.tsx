@@ -159,6 +159,16 @@ export default function CourseDetailPage() {
             </span>
           </div>
           <ProgressBar value={course.progress} className="mt-2" barClassName={tone.solid} />
+          {!canManage && (
+            course.lesson_count > 0 && completed >= course.lesson_count ? (
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-emerald-800">You finished this course. Your certificate is ready.</p>
+                <ButtonLink href={`/certificate/${course.id}`}>Get my certificate</ButtonLink>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-muted">Complete every lesson to unlock your certificate.</p>
+            )
+          )}
         </Card>
       )}
 

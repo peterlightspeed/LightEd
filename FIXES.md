@@ -24,3 +24,16 @@ Rebuilt tutor chat (fixed between header and tab bar, markdown rendering, typing
 source chips, auto-grow composer, session persistence); brand in mobile header; clearer active tab;
 compact course filters; inline class-code row; non-wrapping dashboard buttons; 320px fixes; focus rings;
 reduced-motion support; select arrows.
+
+# Round 2: friendlier app, teacher tools, certificates
+- Tutor never dead-ends: students get how-to-enrol steps, matching course suggestions and Browse/Join buttons;
+  teachers get a course-building assistant (Gemini) or a how-to-start guide with free material sources.
+- Quiz: "Approve & publish" is now "Publish quiz"; after publishing it becomes a green "Published" badge,
+  and "Save changes" only appears after edits.
+- AI for teachers: "Suggest topics" (tap to add) and "Draft with AI" for lessons (POST /ai/suggest-topics, /ai/draft-lesson).
+- Videos: YouTube, Vimeo and Instagram links play inline; Zoom/Meet/Teams recordings and Drive files show as cards.
+- Leaderboard (GET /teacher/leaderboard) on the Students page: 60% quiz average + 40% completion, per course.
+- Certificates: unlock at 100% lessons; printable page /certificate/{courseId}; public check at GET /certificates/verify/{id}.
+- Teacher home: dismissible getting-started guide and weekly-rotating course ideas (ML/AI, data analysis...) that
+  pre-fill the new-course form.
+- Tests: 36 passing (test_v7_features.py).

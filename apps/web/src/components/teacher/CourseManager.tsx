@@ -5,7 +5,7 @@
  * Everything calls the existing authoring endpoints; the backend re-checks ownership.
  */
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Copy, FileUp, Link2, ListChecks, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, Copy, FileUp, Link2, ListChecks, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 
 import QuizEditor from "@/components/teacher/QuizEditor";
 import { Button, Card, CardHeader, Input } from "@/components/ui";
@@ -114,7 +114,7 @@ function ResourceLinks({ lessonId }: { lessonId: number }) {
       ))}
       <form onSubmit={add} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
         <input className="input-base !py-2" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required minLength={2} aria-label="Resource title" />
-        <input className="input-base !py-2" placeholder="https://…" type="url" value={url} onChange={(e) => setUrl(e.target.value)} required aria-label="Resource URL" />
+        <input className="input-base !py-2" placeholder="YouTube, Instagram, Zoom/Meet recording or any link" type="url" value={url} onChange={(e) => setUrl(e.target.value)} required aria-label="Resource URL" />
         <Button type="submit" variant="secondary">Add</Button>
       </form>
       {err && <p className="mt-2 text-xs font-medium text-rose-600">{err}</p>}
@@ -129,6 +129,54 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
   const [lesson, setLesson] = useState({ title: "", summary: "", minutes: "10", content: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ideas, setIdeas] = useState<string[]>([]);
+  const [ai, setAi] = useState<"topics" | "draft" | null>(null);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
+  async function suggestTopics() {
+    setAi("topics");
+    setAiNote(null);
+    try {
+      const r = await api.post<{ topics: string[]; provider: string }>("/ai/suggest-topics", {
+        course_title: course.title,
+        description: course.description ?? "",
+      });
+      const have = new Set(course.topics.map((t) => t.title.toLowerCase()));
+      setIdeas(r.topics.filter((t) => !have.has(t.toLowerCase())));
+      if (r.provider !== "gemini") setAiNote("AI is offline, so these are generic starting points. Edit them to fit your course.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not suggest topics.");
+    } finally {
+      setAi(null);
+    }
+  }
+
+  async function draftLesson() {
+    if (lesson.title.trim().length < 3) {
+      setError("Type a lesson title first, then I can draft it for you.");
+      return;
+    }
+    setError(null);
+    setAi("draft");
+    setAiNote(null);
+    try {
+      const r = await api.post<{ summary: string; content: string; provider: string }>("/ai/draft-lesson", {
+        title: lesson.title,
+        course_title: course.title,
+        level: course.level ?? "Beginner",
+      });
+      setLesson((l) => ({ ...l, summary: l.summary || r.summary, content: l.content ? l.content + "\n\n" + r.content : r.content }));
+      setAiNote(
+        r.provider === "gemini"
+          ? "Draft added. Read it carefully, fix anything inaccurate, and add your own examples before saving."
+          : "AI is offline, so I added a template. Fill in each section."
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not draft the lesson.");
+    } finally {
+      setAi(null);
+    }
+  }
 
   async function run(fn: () => Promise<unknown>) {
     setError(null);
@@ -182,7 +230,35 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
         <Button type="submit" loading={busy}>
           <Plus className="h-4 w-4" /> Add topic
         </Button>
+        <Button type="button" variant="secondary" loading={ai === "topics"} onClick={suggestTopics}>
+          <Sparkles className="h-4 w-4" /> Suggest topics
+        </Button>
       </form>
+      {ideas.length > 0 && (
+        <div className="mt-3 rounded-2xl bg-brand-50/60 p-3">
+          <p className="text-xs font-semibold text-brand-700">Tap a topic to add it to your course</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ideas.map((t) => (
+              <button
+                key={t}
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setIdeas((xs) => xs.filter((x) => x !== t));
+                  run(async () => {
+                    await api.post(`/courses/${course.id}/topics`, { title: t, order_index: course.topics.length + 1 });
+                  });
+                }}
+                className="min-h-[40px] rounded-full border border-brand-200 bg-white px-3.5 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-60"
+              >
+                <Plus className="mr-1 inline h-3.5 w-3.5" />
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {aiNote && ai === null && ideas.length > 0 && <p className="mt-2 text-xs text-amber-700">{aiNote}</p>}
 
       <div className="mt-5 space-y-4">
         {course.topics.map((topic) => (
@@ -205,7 +281,7 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
                     onClick={() => setQuizFor(quizFor === l.id ? null : l.id)}
                     className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-navy-700 hover:bg-white"
                   >
-                    <ListChecks className="h-4 w-4" /> Quiz
+                    <ListChecks className="h-4 w-4" /> Quiz &amp; links
                     <ChevronDown className={`h-4 w-4 transition ${quizFor === l.id ? "rotate-180" : ""}`} />
                   </button>
                 </div>
@@ -225,6 +301,12 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
                   <Input label="Short summary" name="lsummary" value={lesson.summary} onChange={(e) => setLesson({ ...lesson, summary: e.target.value })} />
                   <Input label="Minutes" name="lmin" type="number" min={1} max={240} value={lesson.minutes} onChange={(e) => setLesson({ ...lesson, minutes: e.target.value })} />
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" loading={ai === "draft"} onClick={draftLesson}>
+                    <Sparkles className="h-4 w-4" /> Draft with AI
+                  </Button>
+                </div>
+                {aiNote && <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">{aiNote}</p>}
                 <PdfImport onText={(t) => setLesson((l) => ({ ...l, content: l.content ? l.content + "\n\n" + t : t }))} />
                 <div>
                   <label className="label" htmlFor={`content-${topic.id}`}>Lesson content</label>
@@ -238,7 +320,10 @@ export default function CourseManager({ course, onChanged }: { course: CourseDet
             )}
           </div>
         ))}
-        {course.topics.length === 0 && <p className="text-sm text-muted">No topics yet — add your first topic above.</p>}
+        {course.topics.length === 0 && <p className="rounded-2xl bg-mist/70 p-4 text-sm text-muted">
+            No topics yet. A topic is a chapter, like &ldquo;Forces &amp; Motion&rdquo;. Type one above, or tap <strong>Suggest topics</strong> and I&apos;ll propose an outline.
+            Then add lessons to each topic (type, paste, or import a PDF), and attach videos under <strong>Quiz &amp; links</strong>.
+          </p>}
       </div>
     </Card>
   );

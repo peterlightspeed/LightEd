@@ -4,10 +4,10 @@
  * Quiz authoring for ONE lesson:
  *   1) "Generate draft" asks the backend (Gemini if configured, else offline fallback),
  *   2) the teacher edits every question / option / correct answer,
- *   3) "Approve & publish" saves it (PUT /lessons/{id}/quiz). Students only ever see published quizzes.
+ *   3) "Publish quiz" saves it (then shows a "Published" badge; "Save changes" appears only after edits) (PUT /lessons/{id}/quiz). Students only ever see published quizzes.
  */
 import { useEffect, useState } from "react";
-import { Plus, Sparkles, Trash2 } from "lucide-react";
+import { CheckCircle2, Plus, Sparkles, Trash2 } from "lucide-react";
 
 import { Button, Select } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -23,12 +23,19 @@ export default function QuizEditor({ lessonId, onSaved }: { lessonId: number; on
   const [difficulty, setDifficulty] = useState("medium");
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // JSON of the last published version (null = never published). Drives the publish button below.
+  const [saved, setSaved] = useState<string | null>(null);
+  const published = saved !== null;
+  const dirty = published && JSON.stringify(questions) !== saved;
 
   // Load the existing quiz (with answers) if there is one.
   useEffect(() => {
     api
       .get<{ questions: DraftQuestion[] }>(`/lessons/${lessonId}/quiz/edit`)
-      .then((d) => setQuestions(d.questions))
+      .then((d) => {
+        setQuestions(d.questions);
+        if (d.questions.length > 0) setSaved(JSON.stringify(d.questions));
+      })
       .catch(() => undefined)
       .finally(() => setLoading(false));
   }, [lessonId]);
@@ -48,7 +55,7 @@ export default function QuizEditor({ lessonId, onSaved }: { lessonId: number; on
       setQuestions(d.questions);
       setNote(
         d.provider === "gemini"
-          ? "Drafted by AI from your lesson text. Review every question before publishing."
+          ? "Drafted by AI from your lesson text. Review every question, then press Publish."
           : "Drafted from your lesson text (offline mode — no AI key set). Review and edit before publishing."
       );
     } catch (err) {
@@ -63,7 +70,8 @@ export default function QuizEditor({ lessonId, onSaved }: { lessonId: number; on
     setBusy("save");
     try {
       await api.put(`/lessons/${lessonId}/quiz`, { questions });
-      setNote("Published ✓ students can now take this quiz.");
+      setSaved(JSON.stringify(questions));
+      setNote(null);
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save the quiz.");
@@ -147,9 +155,15 @@ export default function QuizEditor({ lessonId, onSaved }: { lessonId: number; on
         <Button variant="secondary" onClick={() => setQuestions((qs) => [...qs, blank()])}>
           <Plus className="h-4 w-4" /> Add question
         </Button>
-        <Button onClick={save} loading={busy === "save"} disabled={questions.length === 0}>
-          Approve &amp; publish
-        </Button>
+        {published && !dirty ? (
+          <p className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 text-sm font-semibold text-emerald-700" role="status">
+            <CheckCircle2 className="h-4 w-4" /> Published. Students can take this quiz.
+          </p>
+        ) : (
+          <Button onClick={save} loading={busy === "save"} disabled={questions.length === 0}>
+            {published ? "Save changes" : "Publish quiz"}
+          </Button>
+        )}
       </div>
     </div>
   );

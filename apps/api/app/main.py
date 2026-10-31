@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
-from app.api.routes import admin, ai, auth, courses, dashboard, lessons, extras, planner, progress, quizzes, teacher
+from app.api.routes import admin, ai, auth, certificates, courses, dashboard, lessons, extras, planner, progress, quizzes, teacher
 from app.core.config import settings
 
 logger = logging.getLogger("lighted")
@@ -96,6 +96,7 @@ app.include_router(ai.router)
 app.include_router(teacher.router)
 app.include_router(planner.router)
 app.include_router(extras.router)
+app.include_router(certificates.router)
 
 
 @app.get("/health", tags=["meta"])

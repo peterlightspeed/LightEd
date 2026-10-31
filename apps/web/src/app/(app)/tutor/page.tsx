@@ -9,17 +9,31 @@
  *  - Scrolling uses the message list's own scrollTo(). No effect returns a value: React treats any
  *    non-function return from useEffect as a cleanup and crashes the whole page if it isn't one.
  */
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, BookOpen, RotateCcw, Send, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, GraduationCap, RotateCcw, Send, Sparkles } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import { useSlowHint } from "@/lib/hooks";
 import { RichText } from "@/lib/richtext";
 
+interface CourseHint {
+  id: number;
+  title: string;
+  subject?: string;
+  level?: string;
+}
+interface NextStep {
+  label: string;
+  href: string;
+}
 interface Msg {
   role: "user" | "tutor";
   text: string;
   sources?: string[];
+  suggestions?: CourseHint[];
+  actions?: NextStep[];
   notice?: string | null;
   error?: boolean;
 }
@@ -28,17 +42,25 @@ interface Reply {
   sources: string[];
   provider?: string;
   notice?: string | null;
+  suggestions?: CourseHint[];
+  actions?: NextStep[];
 }
 
 const STORE = "lighted_tutor_chat_v1";
-const GREETING: Msg = {
-  role: "tutor",
-  text: "Hi! Ask me anything about your enrolled courses. I answer from your lesson material and show where it came from.",
-};
-const STARTERS = ["What should I focus on first?", "Summarise my latest lesson", "Quiz me with one question"];
+const STUDENT_GREETING =
+  "Hi! Ask me anything about your enrolled courses. I answer from your lesson material and show where it came from. Not enrolled yet? Ask me which course to start with.";
+const TEACHER_GREETING =
+  "Hi! I can help you build your course: suggest topics, explain how to add lessons, videos and quizzes, and point you to free teaching material. What would you like to do?";
+const STUDENT_STARTERS = ["Which course should I start with?", "What should I focus on first?", "Summarise my latest lesson"];
+const TEACHER_STARTERS = ["How do I add my first lesson?", "Where can I find free teaching materials?", "How do I add YouTube videos to a lesson?"];
 const FOLLOW_UPS = ["Explain this in simple words", "Give me an example", "Quiz me on this"];
+const TEACHER_FOLLOW_UPS = ["Give me an example", "Make it shorter", "What should I do next?"];
 
 export default function TutorPage() {
+  const { user } = useAuth();
+  const isTeacher = user?.role === "teacher" || user?.role === "admin";
+  const GREETING: Msg = { role: "tutor", text: isTeacher ? TEACHER_GREETING : STUDENT_GREETING };
+  const STARTERS = isTeacher ? TEACHER_STARTERS : STUDENT_STARTERS;
   const [msgs, setMsgs] = useState<Msg[]>([GREETING]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -89,7 +111,7 @@ export default function TutorPage() {
       const q = raw.trim();
       if (!q || busy) return;
       // Context for follow-ups like "give me an example": the last few real turns (no errors/greeting).
-      const real = msgs.filter((m) => !m.error && m.text !== GREETING.text);
+      const real = msgs.filter((m) => !m.error && !m.text.startsWith("Hi! "));
       // On retry the question is already the last real turn, so don't send it twice.
       const history = (opts.retry ? real.slice(0, -1) : real)
         .slice(-6)
@@ -100,7 +122,10 @@ export default function TutorPage() {
       try {
         // retry=true: the free-tier API may be asleep; this call is safe to repeat.
         const r = await api.post<Reply>("/ai/tutor", { question: q, history }, true, true);
-        setMsgs((m) => [...m, { role: "tutor", text: r.answer, sources: r.sources, notice: r.notice }]);
+        setMsgs((m) => [
+          ...m,
+          { role: "tutor", text: r.answer, sources: r.sources, notice: r.notice, suggestions: r.suggestions, actions: r.actions },
+        ]);
       } catch (err) {
         setMsgs((m) => [
           ...m,
@@ -110,7 +135,7 @@ export default function TutorPage() {
         setBusy(false);
       }
     },
-    [busy, msgs]
+    [busy, msgs] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const lastQuestion = [...msgs].reverse().find((m) => m.role === "user")?.text;
@@ -189,6 +214,31 @@ export default function TutorPage() {
                   </ul>
                 </div>
               )}
+              {m.suggestions && m.suggestions.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {m.suggestions.map((c) => (
+                    <li key={c.id}>
+                      <Link href={`/courses/${c.id}`} className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2 hover:border-brand-300 hover:bg-brand-50">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><GraduationCap className="h-5 w-5" /></span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-ink">{c.title}</span>
+                          <span className="block truncate text-xs text-muted">{[c.subject, c.level].filter(Boolean).join(" · ")}</span>
+                        </span>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-muted" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {m.actions && m.actions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {m.actions.map((a) => (
+                    <Link key={a.label} href={a.href} className="inline-flex min-h-[40px] items-center rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">
+                      {a.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
               {m.error && lastQuestion && i === msgs.length - 1 && (
                 <button
                   onClick={() => ask(lastQuestion, { retry: true })}
@@ -236,7 +286,7 @@ export default function TutorPage() {
           className="-mx-3 mt-2 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="Suggested follow-ups"
         >
-          {FOLLOW_UPS.map((s) => (
+          {(isTeacher ? TEACHER_FOLLOW_UPS : FOLLOW_UPS).map((s) => (
             <button
               key={s}
               onClick={() => ask(s)}

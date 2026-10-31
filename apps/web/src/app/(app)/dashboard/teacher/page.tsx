@@ -8,6 +8,8 @@
  */
 import Link from "next/link";
 import UpcomingSessions from "@/components/live/UpcomingSessions";
+import CourseIdeas from "@/components/teacher/CourseIdeas";
+import TeacherGuide from "@/components/teacher/TeacherGuide";
 import { greetingFor } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
@@ -92,6 +94,8 @@ export default function TeacherDashboardPage() {
         </ButtonLink>
       </div>
 
+      <TeacherGuide />
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {statCards.map((card) => {
@@ -107,6 +111,8 @@ export default function TeacherDashboardPage() {
           );
         })}
       </div>
+
+      <CourseIdeas />
 
       <UpcomingSessions />
 

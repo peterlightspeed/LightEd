@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronRight, Search, Users } from "lucide-react";
 
+import Leaderboard from "@/components/teacher/Leaderboard";
 import RiskBadge from "@/components/teacher/RiskBadge";
 import { Avatar, Card, EmptyState, Input, ProgressBar, Skeleton } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -41,6 +42,8 @@ export default function StudentsPage() {
         <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight text-ink">Your students</h1>
         <p className="mt-1 text-sm text-muted">Learners enrolled in your courses, with those needing help listed first.</p>
       </div>
+
+      <Leaderboard />
 
       <Input placeholder="Search by name or email…" icon={<Search className="h-4 w-4" />} value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search students" />
 

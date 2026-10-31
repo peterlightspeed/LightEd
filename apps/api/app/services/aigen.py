@@ -288,3 +288,70 @@ def tutor_answer(
     notice = "The AI model is unavailable right now, so I'm showing the closest passages from your lesson instead."
     logger.warning("Tutor fell back to offline mode: %s", err)
     return ("Here's what your course material says:\n\n" + "\n\n".join(ranked), sources, "offline", notice)
+
+
+# ------------------------------------------------------------------ teacher authoring helpers
+def _parse_json(text: str | None):
+    if not text:
+        return None
+    try:
+        return json.loads(re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.M).strip())
+    except (ValueError, TypeError):
+        return None
+
+
+def draft_lesson(title: str, course_title: str = "", level: str = "Beginner") -> tuple[str, str, str]:
+    """Draft (summary, content, provider) for a lesson the teacher is about to write. A starting point, not a final text."""
+    ctx = f' in the course "{course_title}"' if course_title else ""
+    text = _gemini(
+        f'Write a clear lesson titled "{title}"{ctx} for {level.lower()} learners. Respond ONLY with JSON: '
+        '{"summary": "one sentence", "content": "the lesson text"}. The content must be 250-400 words, plain text, '
+        "short paragraphs separated by a blank line, use **bold** for key terms, include one worked example and "
+        "end with a 'Key points' paragraph. Be accurate; do not invent statistics.",
+        as_json=True,
+    )
+    data = _parse_json(text)
+    if isinstance(data, dict) and str(data.get("content", "")).strip():
+        return str(data.get("summary", "")).strip()[:300], str(data["content"]).strip(), "gemini"
+    return (
+        f"An introduction to {title}.",
+        f"**{title}**\n\n"
+        f"What you will learn: explain what {title} means, describe its key ideas, and apply them to an example.\n\n"
+        f"**Key ideas**\n\nWrite 2-3 short paragraphs explaining the main ideas of {title} in simple words.\n\n"
+        "**Worked example**\n\nShow one example step by step.\n\n"
+        "**Key points**\n\nSummarise the 3-4 things students must remember.\n\n"
+        "(This is a template because the AI model was unavailable. Fill in each section, or try Draft with AI again.)",
+        "offline",
+    )
+
+
+def suggest_topics(course_title: str, description: str = "", n: int = 6) -> tuple[list[str], str]:
+    """Suggested topic titles for a course outline."""
+    text = _gemini(
+        f'List {n} topic titles, in teaching order, for a course called "{course_title}". '
+        f"{('Course description: ' + description[:300]) if description else ''} "
+        'Respond ONLY with a JSON array of short strings (max 6 words each).',
+        as_json=True,
+    )
+    data = _parse_json(text)
+    if isinstance(data, list):
+        out = [str(x).strip() for x in data if str(x).strip()][:n]
+        if out:
+            return out, "gemini"
+    base = course_title.strip() or "the subject"
+    return [f"Introduction to {base}", f"Core concepts of {base}", f"Worked examples", f"Common mistakes and how to avoid them",
+            f"Real-world applications", "Review and practice"][:n], "offline"
+
+
+def teacher_assist(question: str, history: list[dict] | None = None) -> str | None:
+    """General teaching-assistant answer for teachers (not limited to course material). None if the AI is unavailable."""
+    convo = "".join(
+        f"{'Teacher' if h.get('role') == 'user' else 'Assistant'}: {str(h.get('text', ''))[:400]}\n" for h in (history or [])[-6:]
+    )
+    text, _ = _gemini_call(
+        "You are LightEd's assistant for teachers building online courses. Help with course outlines, lesson drafts, "
+        "quiz ideas, free teaching material sources and student engagement. Be practical and concise (under 200 words); "
+        "use short bullet lists. Do not invent statistics or links.\n\n"
+        f"{convo}Teacher: {question}"
+    )
+    return text

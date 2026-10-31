@@ -57,11 +57,21 @@ export default function CoursesPage() {
   const { user } = useAuth();
   const [creating, setCreating] = useState(false);
   const canCreate = user?.role === "teacher" || user?.role === "admin";
+  const [prefill, setPrefill] = useState<{ title?: string; subject?: string; level?: string; description?: string } | undefined>();
+
+  // Arrive from "Create this course" / the tutor with ?new=1&title=… and open the form pre-filled.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("new") === "1" && canCreate) {
+      setPrefill({ title: q.get("title") ?? undefined, subject: q.get("subject") ?? undefined, level: q.get("level") ?? undefined, description: q.get("desc") ?? undefined });
+      setCreating(true);
+    }
+  }, [canCreate]);
 
   return (
     <div className="space-y-7">
       {user?.role === "student" && <JoinWithCode />}
-      {creating && <NewCourseForm onCancel={() => setCreating(false)} />}
+      {creating && <NewCourseForm key={prefill?.title ?? "blank"} initial={prefill} onCancel={() => setCreating(false)} />}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-semibold text-brand-600">Catalogue</p>

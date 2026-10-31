@@ -105,3 +105,43 @@ def student_detail(
             for a, q, l in attempts
         ],
     }
+
+
+@router.get("/leaderboard")
+def leaderboard(
+    course_id: int | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_roles("teacher", "admin")),
+):
+    """Ranks students in one course (or all of the teacher's courses).
+
+    points = 60% average quiz score + 40% lesson completion (both 0-100). A student with no quiz
+    attempts is scored on completion alone, so people who only read lessons still appear.
+    """
+    owner = _scope_owner(user)
+    if course_id is not None:
+        course = db.get(Course, course_id)
+        if not course or (owner is not None and course.owner_id != owner):
+            raise HTTPException(404, "Course not found")
+        cids = [course_id]
+    else:
+        stmt = select(Course.id)
+        if owner is not None:
+            stmt = stmt.where(Course.owner_id == owner)
+        cids = list(db.scalars(stmt))
+
+    sids = list(db.scalars(select(Enrollment.user_id).where(Enrollment.course_id.in_(cids or [-1])).distinct()))
+    rows = []
+    for s in db.scalars(select(User).where(User.id.in_(sids or [-1]), User.role == "student")):
+        m = student_metrics(db, s.id, cids)
+        avg, comp = m["avg_score"], m["completion"]
+        points = round(0.6 * avg + 0.4 * comp) if avg is not None else round(0.4 * comp)
+        rows.append({
+            "id": s.id, "name": s.full_name, "points": points, "avg_score": avg, "completion": comp,
+            "lessons_completed": m["lessons_completed"], "attempts": m["attempts"],
+            "certificate_eligible": m["lessons_total"] > 0 and comp >= 100,
+        })
+    rows.sort(key=lambda r: (-r["points"], -r["completion"], r["name"].lower()))
+    for i, r in enumerate(rows, start=1):
+        r["rank"] = i
+    return {"course_id": course_id, "count": len(rows), "leaders": rows}

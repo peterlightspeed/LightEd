@@ -10,13 +10,13 @@ import type { Course } from "@/types";
 
 const ACCENTS = ["blue", "emerald", "amber", "rose", "violet"];
 
-export default function NewCourseForm({ onCancel }: { onCancel: () => void }) {
+export default function NewCourseForm({ onCancel, initial }: { onCancel: () => void; initial?: { title?: string; subject?: string; level?: string; description?: string } }) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState("General");
-  const [level, setLevel] = useState("Beginner");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [subject, setSubject] = useState(initial?.subject ?? "General");
+  const [level, setLevel] = useState(initial?.level ?? "Beginner");
   const [accent, setAccent] = useState("blue");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
